@@ -1,0 +1,8 @@
+Antes de terminar:
+1. Tildá las tareas completadas en docs/tasks.md
+2. Actualizá docs/context.md con el estado actual y el próximo paso
+3. Haceme un resumen de lo que hicimos hoy
+
+
+Si la sesión es larga — cada 1-2 horas de trabajo conviene pedirle:
+Guardá el estado actual en docs/context.md
