@@ -1,8 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export default function ConfiguracionPage() {
+const PROFESIONAL_ID = process.env.NEXT_PUBLIC_PROFESIONAL_ID ?? 'default';
+
+function ConfiguracionContent() {
+  const searchParams = useSearchParams();
+  const [googleStatus, setGoogleStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [config, setConfig] = useState({
     nombre: 'Dr. Diego',
     email: 'diego@ejemplo.com',
@@ -12,12 +17,17 @@ export default function ConfiguracionPage() {
     horarioInicio: '09:00',
     horarioFin: '20:00',
     diasLaborables: [1, 2, 3, 4, 5],
-    googleCalendarConectado: false,
     twilioConectado: false,
     mercadoPagoConectado: false,
     recordatorios: true,
     recordatorioHoras: 24,
   });
+
+  useEffect(() => {
+    const google = searchParams.get('google');
+    if (google === 'success') setGoogleStatus('success');
+    if (google === 'error') setGoogleStatus('error');
+  }, [searchParams]);
 
   const dias = [
     { valor: 0, nombre: 'Domingo' },
@@ -40,7 +50,6 @@ export default function ConfiguracionPage() {
 
   return (
     <div className="p-6 lg:p-8">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Configuración</h1>
         <p className="text-gray-500">Ajustes del profesional y del sistema</p>
@@ -160,30 +169,41 @@ export default function ConfiguracionPage() {
             <h2 className="text-lg font-semibold text-gray-900">Integraciones</h2>
           </div>
           <div className="divide-y">
+            {googleStatus === 'success' && (
+              <div className="mx-6 mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">
+                Google Calendar conectado correctamente.
+              </div>
+            )}
+            {googleStatus === 'error' && (
+              <div className="mx-6 mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
+                No se pudo conectar Google Calendar. Intentá de nuevo.
+              </div>
+            )}
             <div className="flex items-center justify-between px-6 py-4">
               <div>
                 <p className="font-medium text-gray-900">Google Calendar</p>
                 <p className="text-sm text-gray-500">Sincronización de turnos</p>
               </div>
-              <button className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                config.googleCalendarConectado
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}>
-                {config.googleCalendarConectado ? 'Conectado' : 'Conectar'}
-              </button>
+              {googleStatus === 'success' ? (
+                <span className="rounded-lg bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
+                  Conectado ✓
+                </span>
+              ) : (
+                <a
+                  href={`/api/auth/google?profesionalId=${PROFESIONAL_ID}`}
+                  className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  Conectar
+                </a>
+              )}
             </div>
             <div className="flex items-center justify-between px-6 py-4">
               <div>
                 <p className="font-medium text-gray-900">WhatsApp (Twilio)</p>
                 <p className="text-sm text-gray-500">Mensajes de pacientes</p>
               </div>
-              <button className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                config.twilioConectado
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}>
-                {config.twilioConectado ? 'Conectado' : 'Conectar'}
+              <button className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+                Conectar
               </button>
             </div>
             <div className="flex items-center justify-between px-6 py-4">
@@ -191,12 +211,8 @@ export default function ConfiguracionPage() {
                 <p className="font-medium text-gray-900">MercadoPago</p>
                 <p className="text-sm text-gray-500">Cobro de señas</p>
               </div>
-              <button className={`rounded-lg px-4 py-2 text-sm font-medium ${
-                config.mercadoPagoConectado
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}>
-                {config.mercadoPagoConectado ? 'Conectado' : 'Conectar'}
+              <button className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+                Conectar
               </button>
             </div>
           </div>
@@ -249,5 +265,13 @@ export default function ConfiguracionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ConfiguracionPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-gray-500">Cargando...</div>}>
+      <ConfiguracionContent />
+    </Suspense>
   );
 }
