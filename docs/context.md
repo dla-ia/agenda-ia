@@ -8,17 +8,19 @@
 
 ## Último estado conocido
 **Fecha:** 02/05/2026
-**Sesión:** Auth completo + panel con datos reales + calendario semanal + config dinámica del agente
+**Sesión:** WhatsApp e2e verificado + Google Calendar Paso 5 + dominio calendaria.com.ar + MCP Twilio
 
 ### ¿Dónde quedamos?
-El panel de Calendaria está completo y conectado a Supabase real. Todas las páginas del panel tienen datos reales. Se implementó el sistema de auth completo: login, registro, onboarding wizard y middleware de protección de rutas.
+El flujo central del agente está funcionando end-to-end y verificado: WhatsApp → Claude → Supabase → TwiML. Se corrigió el problema de contaminación de contexto (historial limitado a 10 mensajes, conversación se cierra al confirmar turno). Google Calendar Paso 5 implementado: al crear un turno se crea el evento en Calendar del profesional.
 
-El agente Aurora ahora usa la configuración que el profesional guardó en `/agente` (nombre, tono, saludo, frases prohibidas) — el system prompt se genera dinámicamente en cada conversación de WhatsApp.
+El dominio `calendaria.com.ar` fue registrado y agregado al proyecto Vercel. Falta que Diego cargue las delegaciones en NIC Argentina (nameservers de Vercel) para que el DNS propague.
 
-Se agregaron los MCP servers de Supabase y Vercel al config — necesitan que reinicies Claude Code para activarse.
+MCP de Twilio configurado en `.claude/settings.local.json` — se activa reiniciando Claude Code.
 
 ### ¿Qué funciona?
 - **App en producción:** https://agenda-ia-gray.vercel.app
+- **WhatsApp e2e verificado:** saludo limpio → disponibilidad → confirma turno → conversación se cierra
+- **Google Calendar:** al confirmar turno, se crea evento automáticamente (best-effort)
 - **Todas las páginas del panel con datos reales de Supabase:**
   - `/dashboard` → métricas reales (turnos, señas, no-shows, pacientes)
   - `/conversaciones` → mensajes reales de WhatsApp
@@ -31,12 +33,10 @@ Se agregaron los MCP servers de Supabase y Vercel al config — necesitan que re
   - `middleware.ts` → protege rutas (bypass activo, ver abajo)
   - Sidebar → logout + email de sesión
 - **Agente Aurora:** system prompt dinámico desde `configuraciones` table
-- **Webhook Twilio:** activo en Vercel, recibe WhatsApp → Claude → responde
-- **Google Calendar OAuth:** end-to-end (token guardado, escritura pendiente)
-- **MCP servers:** Supabase + Vercel en config (activar reiniciando Claude Code)
+- **Dominio:** calendaria.com.ar agregado a Vercel, `www` → redirect 301 a raíz
 
 ### Credenciales y datos clave
-- **App producción:** https://agenda-ia-gray.vercel.app
+- **App producción:** https://agenda-ia-gray.vercel.app (dominio definitivo: calendaria.com.ar — pendiente DNS)
 - **Supabase:** https://aikwrtxmkdthnsnrnjng.supabase.co (project ref: `aikwrtxmkdthnsnrnjng`)
 - **Profesional prueba ID:** 02bccd60-4947-49fc-877d-f109665920f2
 - **Google Cloud proyecto:** notional-weft-494920-k6
@@ -45,18 +45,26 @@ Se agregaron los MCP servers de Supabase y Vercel al config — necesitan que re
 - **Modelo Claude:** claude-sonnet-4-6
 - **Credenciales:** en `.env.local` (NO en git) y en Vercel (15+ vars)
 
-### ¿Qué está roto o incompleto?
-- **WhatsApp e2e:** no fue verificado post-últimos cambios (system prompt dinámico). Probar mandando un mensaje al sandbox.
-- **Google Calendar escritura:** token guardado pero el agente no crea eventos al confirmar turno (Paso 5 pendiente)
-- **Google Cloud OAuth URI:** falta `https://agenda-ia-gray.vercel.app/api/auth/google/callback` en Google Cloud Console
-- **Auth obligatorio:** el middleware está en bypass mientras `NEXT_PUBLIC_PROFESIONAL_ID` esté en Vercel. Para activar auth real: eliminar esa variable de Vercel.
+### ¿Qué está pendiente?
+- **DNS calendaria.com.ar:** Diego tiene que cargar en NIC Argentina:
+  - `ns1.vercel-dns.com` y `ns2.vercel-dns.com` como delegaciones → EJECUTAR CAMBIOS
+  - Una vez propagado (hasta 48hs), Vercel emite SSL automáticamente
+- **Post-DNS (Claude lo hace):**
+  - Actualizar `NEXT_PUBLIC_APP_URL` en Vercel → `https://calendaria.com.ar`
+  - Agregar `https://calendaria.com.ar/api/auth/google/callback` en Google Cloud Console
+  - Actualizar webhook Twilio → `https://calendaria.com.ar/api/webhooks/twilio`
+- **Auth obligatorio:** middleware en bypass mientras `NEXT_PUBLIC_PROFESIONAL_ID` esté en Vercel. Eliminar esa variable cuando haya usuarios reales.
 - **Agenda modal:** botón "+ Turno" y acciones (cancelar, marcar completado) son UI sin funcionalidad
-- **MCP servers:** agregados al config pero no cargados — requieren reiniciar Claude Code
+- **MCP servers:** requieren reiniciar Claude Code para activarse:
+  - Supabase MCP (autenticar después de reinicio)
+  - Vercel MCP (autenticar después de reinicio)
+  - Twilio MCP (ya configurado en settings.local.json, listo para usar tras reinicio)
 
 ### El próximo paso concreto es
-> 1. **Reiniciar Claude Code** → los MCPs de Supabase y Vercel quedan activos
-> 2. **Verificar e2e WhatsApp:** mandar un mensaje al sandbox y confirmar que el agente responde con horarios y crea el turno correctamente
-> 3. **Google Calendar Paso 5:** en `crear_turno` (agent-tools.ts), después de insertar el turno en Supabase, llamar a Google Calendar API para crear el evento
+> 1. **Diego carga delegaciones en NIC Argentina** → `ns1.vercel-dns.com` + `ns2.vercel-dns.com` → EJECUTAR CAMBIOS
+> 2. **Reiniciar Claude Code** → MCPs de Supabase, Vercel y Twilio quedan activos
+> 3. **Post-DNS propagado:** Claude actualiza URLs (APP_URL en Vercel, Google Cloud, Twilio webhook)
+> 4. **Siguiente feature:** modal "+ Turno" en agenda, o activar auth real eliminando NEXT_PUBLIC_PROFESIONAL_ID
 
 ---
 
@@ -68,4 +76,5 @@ Se agregaron los MCP servers de Supabase y Vercel al config — necesitan que re
 | 30/04/2026 | Tool use completo (4 herramientas), deploy | Verificar e2e, Paso 5 Google Calendar |
 | 30/04/2026 | Fix system prompt (flujo bloqueado en confirmación), deploy vía GitHub | Verificar e2e con WhatsApp |
 | 01/05/2026 | Pivot a Calendaria SaaS: docs, design tokens, sidebar, landing page | Panel con datos reales |
-| 02/05/2026 | Config agente→Supabase, agenda calendario, auth completo, middleware, onboarding, MCP servers | Verificar WhatsApp e2e + Google Calendar Paso 5 |
+| 02/05/2026 mañana | Config agente→Supabase, agenda calendario, auth completo, middleware, onboarding, MCP servers | Verificar WhatsApp e2e + Google Calendar Paso 5 |
+| 02/05/2026 tarde | WhatsApp e2e verificado, Google Calendar Paso 5, fix contaminación historial, dominio calendaria.com.ar, MCP Twilio | Cargar DNS en NIC + reiniciar Claude Code |

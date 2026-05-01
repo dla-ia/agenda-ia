@@ -16,16 +16,22 @@
 - [ ] Activar auth obligatorio en producción: eliminar `NEXT_PUBLIC_PROFESIONAL_ID` de Vercel cuando haya usuarios reales
 - [ ] Probar flujo completo registro → onboarding → dashboard con cuenta nueva
 
+### Dominio calendaria.com.ar (pendiente DNS)
+- [ ] Cargar delegaciones en NIC Argentina: `ns1.vercel-dns.com` y `ns2.vercel-dns.com` → EJECUTAR CAMBIOS
+- [ ] Esperar propagación DNS (~1-48hs) → Vercel emite SSL automáticamente
+- [ ] Actualizar `NEXT_PUBLIC_APP_URL` en Vercel: `https://calendaria.com.ar`
+- [ ] Agregar URI en Google Cloud OAuth: `https://calendaria.com.ar/api/auth/google/callback`
+- [ ] Actualizar webhook Twilio: `https://calendaria.com.ar/api/webhooks/twilio`
+
 ### MCP servers (requieren reiniciar Claude Code)
-- [ ] Activar Supabase MCP (`https://mcp.supabase.com/mcp`) — ya agregado, falta autenticar
-- [ ] Activar Vercel MCP (`https://mcp.vercel.com`) — ya agregado, falta autenticar
+- [ ] Activar Supabase MCP (`https://mcp.supabase.com/mcp`) — ya en config, falta autenticar
+- [ ] Activar Vercel MCP (`https://mcp.vercel.com`) — ya en config, falta autenticar
+- [ ] Activar Twilio MCP (`@twilio-alpha/mcp`) — configurado en `.claude/settings.local.json`, requiere reinicio
 
 ---
 
 ## 🟡 Fase 2 — Completar el agente existente
-- [ ] Verificar e2e WhatsApp: mensaje → Claude consulta Supabase → responde con horarios → crea turno
-- [ ] Paso 5: cuando `crear_turno` tiene éxito, crear evento en Google Calendar (token ya guardado)
-- [ ] Agregar URI de producción en Google Cloud OAuth: `https://agenda-ia-gray.vercel.app/api/auth/google/callback`
+- [ ] Agregar URI de producción en Google Cloud OAuth (ver arriba, bloquea Calendar en prod)
 
 ---
 
@@ -36,7 +42,16 @@
 
 ---
 
-## 🟢 Completadas — Sesión 02/05/2026
+## 🟢 Completadas — Sesión 02/05/2026 (tarde)
+- [x] WhatsApp e2e verificado: mensaje → Claude → Supabase → TwiML funciona correctamente
+- [x] Historial acotado a 10 mensajes — evita contaminación de contexto entre sesiones
+- [x] Conversación se cierra (estado='completada') al confirmar turno — próximo mensaje empieza limpio
+- [x] Google Calendar Paso 5: `crear_turno` crea evento en Google Calendar (best-effort, token desde Supabase)
+- [x] Dominio `calendaria.com.ar` registrado y agregado al proyecto Vercel
+- [x] `www.calendaria.com.ar` → redirect 301 a raíz configurado en `vercel.json`
+- [x] MCP Twilio (`@twilio-alpha/mcp`) configurado en `.claude/settings.local.json`
+
+## 🟢 Completadas — Sesión 02/05/2026 (mañana)
 - [x] Configuración del agente persistida en Supabase (`/api/data/agente` GET+POST)
 - [x] `/agente` page: estado centralizado, carga desde Supabase al montar, guarda con feedback visual
 - [x] `claude-agent.ts`: system prompt dinámico — nombre, tono, saludo, cierre y frases prohibidas desde DB
