@@ -5,37 +5,27 @@
 
 ---
 
-## 🔴 En curso (sesión actual)
-- [ ] Deploy a producción con todos los cambios de esta sesión
-
-## ✅ Completado en esta sesión
-- [x] Pivot de scope: AgendaIA (mono-profesional) → Calendaria (SaaS multi-profesional)
-- [x] Implementar design tokens en tailwind.config.js y globals.css
-- [x] Rediseñar layout con sidebar Calendaria (paleta tierra + Fraunces)
-- [x] Landing page pública (`/`): hero + profesiones + cómo funciona + features + precios + CTA + footer
-- [x] Separar rutas: landing sin sidebar (`/`), panel con sidebar (`/dashboard`, `/conversaciones`, etc.)
+## 🟢 Completado en esta sesión (02/05/2026)
+- [x] Configuración del agente persistida en Supabase (`/api/data/agente` GET+POST)
+- [x] `/agente` page: estado centralizado, carga desde Supabase al montar, guarda con feedback
+- [x] `claude-agent.ts`: system prompt dinámico — usa nombre, tono, saludo, cierre y frases prohibidas desde DB
+- [x] MCP servers agregados: Supabase (`https://mcp.supabase.com/mcp`) + Vercel (`https://mcp.vercel.com`) — activar reiniciando Claude Code
+- [x] `/agenda`: calendario semanal navegable con datos reales de Supabase
+- [x] `/api/data/agenda`: GET turnos por rango de fechas, timezone Argentina UTC-3 correcto
+- [x] Todas las pantallas del panel conectadas a datos reales
 
 ---
 
 ## 🟡 Fase 1 — Fundación del SaaS (próximas)
 
-### Landing page pública (`/`)
-- [ ] Hero section: propuesta de valor, CTA "Creá tu agente"
-- [ ] Sección "¿Cómo funciona?": 3 pasos animados
-- [ ] Sección profesiones: psicólogo, odontólogo, mecánico, nutricionista, etc.
-- [ ] Sección precios / planes
-- [ ] Footer con links legales
-
-### Panel del profesional (design handoff)
-- [ ] Dashboard (`/dashboard`): MetricCards + ActivityFeed + AgendaHoy
-- [ ] Conversaciones (`/conversaciones`): lista + chat + panel de razonamiento IA
-- [ ] Agenda (`/agenda`): calendario semanal + modal de turno
-- [ ] Pacientes (`/pacientes`): lista + ficha de paciente/cliente
-- [ ] Agente IA (`/agente`): 5 tabs (personalidad, reglas, precios, integraciones, crisis)
-
 ### Auth y onboarding
-- [ ] Login / registro (`/auth`)
+- [ ] Login / registro (`/auth`): email + contraseña con Supabase Auth
 - [ ] Wizard de setup inicial (`/onboarding`): conectar WhatsApp, Google Calendar, configurar agente
+
+### Mejoras panel
+- [ ] `/agenda`: botón "+ Turno" funcional (modal para crear turno manualmente)
+- [ ] `/agenda`: acciones del modal (cancelar turno, marcar completado) conectadas a Supabase
+- [ ] `/agente` tab "Reglas de agenda": editar horarios por día (actualmente estáticos)
 
 ---
 
@@ -43,7 +33,6 @@
 - [ ] Verificar e2e WhatsApp: mensaje → Claude consulta Supabase → responde con horarios → crea turno
 - [ ] Paso 5: cuando `crear_turno` tiene éxito, crear evento en Google Calendar (token ya guardado)
 - [ ] Agregar URI de producción en Google Cloud OAuth: `https://agenda-ia-gray.vercel.app/api/auth/google/callback`
-- [ ] Panel web con datos reales: conectar Dashboard, Conversaciones, Pacientes, Agenda a Supabase
 
 ---
 
@@ -54,7 +43,7 @@
 
 ---
 
-## 🟢 Completadas (base sólida heredada)
+## 🟢 Completadas (base sólida)
 - [x] Estructura inicial del proyecto creada (Next.js 14 + Tailwind + Supabase)
 - [x] Schema de Supabase completo (8 tablas, RLS, función get_disponibilidad)
 - [x] Deploy automático en Vercel conectado a GitHub
@@ -71,3 +60,9 @@
 - [x] CLAUDE.md, architecture.md, tasks.md, context.md actualizados con nueva visión
 - [x] Design tokens (paleta tierra + Fraunces) en tailwind.config.js y globals.css
 - [x] Sidebar rediseñada con identidad Calendaria
+- [x] Landing page pública (`/`): hero + profesiones + cómo funciona + features + precios + CTA + footer
+- [x] Dashboard (`/dashboard`): MetricCards + ActivityFeed + AgendaHoy con datos reales
+- [x] Conversaciones (`/conversaciones`): lista + chat real desde Supabase
+- [x] Pacientes (`/pacientes`): lista + ficha con historial de turnos
+- [x] Agente IA (`/agente`): 5 tabs con config persistida en Supabase
+- [x] Agenda (`/agenda`): calendario semanal navegable con turnos reales
