@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { createSupabaseBrowser } from '@/lib/supabase-browser';
 
 const navigation = [
   {
@@ -96,7 +97,24 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName] = useState('Dr. Diego');
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowser();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email) setUserEmail(data.user.email);
+    });
+  }, []);
+
+  async function handleLogout() {
+    const supabase = createSupabaseBrowser();
+    await supabase.auth.signOut();
+    router.push('/auth');
+    router.refresh();
+  }
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
 
@@ -150,20 +168,30 @@ export default function DashboardLayout({
         </nav>
 
         {/* Footer sidebar */}
-        <div
-          className="mt-auto pt-4"
-          style={{ borderTop: '1px solid var(--line)' }}
-        >
+        <div className="mt-auto pt-4" style={{ borderTop: '1px solid var(--line)' }}>
           <div className="flex items-center gap-3 px-2 py-2">
-            <div className="avatar avatar-sm" style={{ background: '#C9B89A', fontSize: 12 }}>
-              D
+            <div className="avatar avatar-sm" style={{ background: '#C9B89A', fontSize: 12, flexShrink: 0 }}>
+              {(userEmail ?? userName).charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)' }}>Dr. Diego</p>
-              <p className="text-xs truncate" style={{ color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
-                Psicólogo
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)', margin: 0 }}>
+                {userEmail ? userEmail.split('@')[0] : userName}
+              </p>
+              <p className="text-xs truncate" style={{ color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', margin: 0 }}>
+                {userEmail ?? 'Demo'}
               </p>
             </div>
+            <button
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', padding: 4, flexShrink: 0, display: 'flex', alignItems: 'center' }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
           </div>
         </div>
       </aside>
