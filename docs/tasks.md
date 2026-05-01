@@ -11,17 +11,18 @@
 - [ ] `/agenda`: botón "+ Turno" funcional (modal para crear turno manualmente)
 - [ ] `/agenda`: acciones del modal (cancelar turno, marcar completado) conectadas a Supabase
 - [ ] `/agente` tab "Reglas de agenda": editar horarios por día (actualmente muestra 09:00-19:00 fijo)
+- [x] Onboarding: asignar `slug` al profesional cuando se registra — campo con auto-sugerencia, validación en tiempo real y preview del link
 
 ### Auth y onboarding
 - [ ] Activar auth obligatorio en producción: eliminar `NEXT_PUBLIC_PROFESIONAL_ID` de Vercel cuando haya usuarios reales
 - [ ] Probar flujo completo registro → onboarding → dashboard con cuenta nueva
 
-### Dominio calendaria.com.ar (pendiente DNS)
-- [ ] Cargar delegaciones en NIC Argentina: `ns1.vercel-dns.com` y `ns2.vercel-dns.com` → EJECUTAR CAMBIOS
-- [ ] Esperar propagación DNS (~1-48hs) → Vercel emite SSL automáticamente
-- [ ] Actualizar `NEXT_PUBLIC_APP_URL` en Vercel: `https://calendaria.com.ar`
-- [ ] Agregar URI en Google Cloud OAuth: `https://calendaria.com.ar/api/auth/google/callback`
-- [ ] Actualizar webhook Twilio: `https://calendaria.com.ar/api/webhooks/twilio`
+### Dominio calendaria.com.ar ✅ COMPLETADO
+- [x] Cargar delegaciones en NIC Argentina: `ns1.vercel-dns.com` y `ns2.vercel-dns.com`
+- [x] Propagación DNS — calendaria.com.ar live con SSL
+- [x] Actualizar `NEXT_PUBLIC_APP_URL` en Vercel: `https://calendaria.com.ar`
+- [x] Agregar URI en Google Cloud OAuth: `https://calendaria.com.ar/api/auth/google/callback`
+- [x] Actualizar webhook Twilio: `https://calendaria.com.ar/api/webhooks/twilio`
 
 ### MCP servers (requieren reiniciar Claude Code)
 - [ ] Activar Supabase MCP (`https://mcp.supabase.com/mcp`) — ya en config, falta autenticar
@@ -31,7 +32,8 @@
 ---
 
 ## 🟡 Fase 2 — Completar el agente existente
-- [ ] Agregar URI de producción en Google Cloud OAuth (ver arriba, bloquea Calendar en prod)
+- [x] Agregar URI de producción en Google Cloud OAuth — hecho junto con DNS
+- [ ] Salir del sandbox Twilio: conectar WhatsApp Business real para producción
 
 ---
 
@@ -41,6 +43,16 @@
 - [ ] Resend: email de confirmación de turno con link de seña
 
 ---
+
+## 🟢 Completadas — Sesión 02/05/2026 (noche)
+- [x] Modelo de negocio WhatsApp definido: 1 número compartido + slug por profesional (escalable, $15/mes fijo)
+- [x] Webhook multi-tenant: detecta profesional por número individual > slug en mensaje > conversación previa > fallback
+- [x] Ruta `/w/[slug]` → redirige a `wa.me/NUMERO?text=TURNO:slug` (link personalizado por profesional)
+- [x] `profesionales` tabla: campos `slug` (UNIQUE) y `twilio_number` agregados via migración SQL
+- [x] Profesional demo tiene `slug='demo'` → link: `calendaria.com.ar/w/demo`
+- [x] `/pacientes`: botón "+ Paciente" + modal para agregar paciente y enviar WhatsApp proactivo
+- [x] `POST /api/data/pacientes`: crea paciente en Supabase + envía WhatsApp via Twilio REST + crea conversación
+- [x] Normalización automática de teléfono argentino (sin código de país)
 
 ## 🟢 Completadas — Sesión 02/05/2026 (tarde)
 - [x] WhatsApp e2e verificado: mensaje → Claude → Supabase → TwiML funciona correctamente
@@ -76,13 +88,11 @@
 - [x] Webhook de Twilio implementado (/api/webhooks/twilio → Claude → Supabase → TwiML)
 - [x] API key de Anthropic configurada (claude-sonnet-4-6)
 - [x] Twilio sandbox conectado (+5491159530792 → +14155238886)
-- [x] 13 variables de entorno en Vercel
 - [x] Deploy a producción: https://agenda-ia-gray.vercel.app
 - [x] Agente Claude con tool use: get_disponibilidad, crear_turno, ver_turnos_paciente, cancelar_turno
 - [x] Fix system prompt: flujo 2 pasos (sin confirmación intermedia que bloqueaba la reserva)
 - [x] Pivot de nombre y scope: AgendaIA → Calendaria SaaS multi-profesional
 - [x] Design tokens (paleta tierra + Fraunces) en tailwind.config.js y globals.css
-- [x] Sidebar rediseñada con identidad Calendaria
 - [x] Landing page pública (`/`): hero + profesiones + cómo funciona + features + precios + CTA + footer
 - [x] Dashboard (`/dashboard`): MetricCards + ActivityFeed + AgendaHoy con datos reales
 - [x] Conversaciones (`/conversaciones`): lista + chat real desde Supabase

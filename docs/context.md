@@ -7,38 +7,47 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 02/05/2026
-**Sesión:** WhatsApp e2e verificado + Google Calendar Paso 5 + dominio calendaria.com.ar + MCP Twilio
+**Fecha:** 03/05/2026
+**Sesión:** DNS calendaria.com.ar live + slug en onboarding + post-DNS completo
 
 ### ¿Dónde quedamos?
-El flujo central del agente está funcionando end-to-end y verificado: WhatsApp → Claude → Supabase → TwiML. Se corrigió el problema de contaminación de contexto (historial limitado a 10 mensajes, conversación se cierra al confirmar turno). Google Calendar Paso 5 implementado: al crear un turno se crea el evento en Calendar del profesional.
-
-El dominio `calendaria.com.ar` fue registrado y agregado al proyecto Vercel. Falta que Diego cargue las delegaciones en NIC Argentina (nameservers de Vercel) para que el DNS propague.
-
-MCP de Twilio configurado en `.claude/settings.local.json` — se activa reiniciando Claude Code.
+calendaria.com.ar está live con SSL. Se completó todo el post-DNS: webhook Twilio apuntando al dominio definitivo, Google Cloud OAuth con la URI de producción, y NEXT_PUBLIC_APP_URL actualizado en Vercel. También se agregó el campo slug al onboarding con auto-sugerencia y validación en tiempo real.
 
 ### ¿Qué funciona?
-- **App en producción:** https://agenda-ia-gray.vercel.app
-- **WhatsApp e2e verificado:** saludo limpio → disponibilidad → confirma turno → conversación se cierra
-- **Google Calendar:** al confirmar turno, se crea evento automáticamente (best-effort)
-- **Todas las páginas del panel con datos reales de Supabase:**
-  - `/dashboard` → métricas reales (turnos, señas, no-shows, pacientes)
-  - `/conversaciones` → mensajes reales de WhatsApp
-  - `/agenda` → calendario semanal navegable con turnos reales
-  - `/pacientes` → lista + ficha con historial
-  - `/agente` → 5 tabs, config se guarda y carga desde Supabase
-- **Auth:**
-  - `/auth` → login/registro (email confirmado automáticamente via Admin API)
-  - `/onboarding` → wizard 3 pasos (perfil, agente, listo)
-  - `middleware.ts` → protege rutas (bypass activo, ver abajo)
-  - Sidebar → logout + email de sesión
+- **App en producción:** https://calendaria.com.ar ✅ (dominio definitivo live)
+- **WhatsApp multi-tenant:** `/w/demo` → wa.me con TURNO:demo → Aurora del profesional correcto
+- **Onboarding con slug:** al registrarse, el profesional elige su link de WhatsApp (auto-sugerido desde la especialidad)
+- **Agregar paciente:** botón "+ Paciente" en /pacientes → modal → crea en DB + manda WhatsApp
+- **WhatsApp e2e verificado:** saludo → disponibilidad → confirmación → conversación se cierra
+- **Google Calendar:** evento creado al confirmar turno (best-effort), URI de prod configurada
+- **Panel completo** con datos reales: dashboard, conversaciones, agenda, pacientes, agente
+- **Auth:** login/registro/onboarding/middleware (bypass activo via env var)
 - **Agente Aurora:** system prompt dinámico desde `configuraciones` table
-- **Dominio:** calendaria.com.ar agregado a Vercel, `www` → redirect 301 a raíz
+
+### Arquitectura WhatsApp multi-tenant
+```
+Profesional A → slug: "garcia-psico"
+Link: calendaria.com.ar/w/garcia-psico
+  → wa.me/14155238886?text=TURNO:garcia-psico
+
+Profesional B → slug: "lopez-nutricion"  
+Link: calendaria.com.ar/w/lopez-nutricion
+  → wa.me/14155238886?text=TURNO:lopez-nutricion
+
+Ambos comparten +14155238886, $15/mes fijo para TODOS
+```
+
+Webhook routing (`/api/webhooks/twilio/route.ts`):
+1. `To` es número individual del prof → busca por `twilio_number`
+2. Mensaje empieza con `TURNO:slug` → busca por `slug`
+3. Teléfono tiene conversación previa → usa `profesional_id` de la última
+4. Fallback → `NEXT_PUBLIC_PROFESIONAL_ID` (desarrollo)
 
 ### Credenciales y datos clave
-- **App producción:** https://agenda-ia-gray.vercel.app (dominio definitivo: calendaria.com.ar — pendiente DNS)
+- **App producción:** https://agenda-ia-gray.vercel.app
 - **Supabase:** https://aikwrtxmkdthnsnrnjng.supabase.co (project ref: `aikwrtxmkdthnsnrnjng`)
-- **Profesional prueba ID:** 02bccd60-4947-49fc-877d-f109665920f2
+- **Profesional prueba ID:** 02bccd60-4947-49fc-877d-f109665920f2 · slug: `demo`
+- **Link de prueba:** https://agenda-ia-gray.vercel.app/w/demo
 - **Google Cloud proyecto:** notional-weft-494920-k6
 - **Twilio sandbox:** +14155238886 → webhook en /api/webhooks/twilio
 - **Teléfono de prueba:** +5491159530792
@@ -46,25 +55,16 @@ MCP de Twilio configurado en `.claude/settings.local.json` — se activa reinici
 - **Credenciales:** en `.env.local` (NO en git) y en Vercel (15+ vars)
 
 ### ¿Qué está pendiente?
-- **DNS calendaria.com.ar:** Diego tiene que cargar en NIC Argentina:
-  - `ns1.vercel-dns.com` y `ns2.vercel-dns.com` como delegaciones → EJECUTAR CAMBIOS
-  - Una vez propagado (hasta 48hs), Vercel emite SSL automáticamente
-- **Post-DNS (Claude lo hace):**
-  - Actualizar `NEXT_PUBLIC_APP_URL` en Vercel → `https://calendaria.com.ar`
-  - Agregar `https://calendaria.com.ar/api/auth/google/callback` en Google Cloud Console
-  - Actualizar webhook Twilio → `https://calendaria.com.ar/api/webhooks/twilio`
-- **Auth obligatorio:** middleware en bypass mientras `NEXT_PUBLIC_PROFESIONAL_ID` esté en Vercel. Eliminar esa variable cuando haya usuarios reales.
-- **Agenda modal:** botón "+ Turno" y acciones (cancelar, marcar completado) son UI sin funcionalidad
-- **MCP servers:** requieren reiniciar Claude Code para activarse:
-  - Supabase MCP (autenticar después de reinicio)
-  - Vercel MCP (autenticar después de reinicio)
-  - Twilio MCP (ya configurado en settings.local.json, listo para usar tras reinicio)
+- **Auth real:** eliminar `NEXT_PUBLIC_PROFESIONAL_ID` de Vercel para activar auth obligatorio (cuando haya usuarios reales)
+- **Agenda modal:** `+ Turno`, cancelar, marcar completado — UI sin funcionalidad
+- **Agente tab "Reglas":** editar horarios por día (actualmente fijo 09:00-19:00)
+- **WhatsApp producción:** salir del sandbox para clientes reales (requiere WhatsApp Business aprobado por Meta)
+- **Fase 3:** MercadoPago (seña), n8n recordatorios, Resend email confirmación
 
 ### El próximo paso concreto es
-> 1. **Diego carga delegaciones en NIC Argentina** → `ns1.vercel-dns.com` + `ns2.vercel-dns.com` → EJECUTAR CAMBIOS
-> 2. **Reiniciar Claude Code** → MCPs de Supabase, Vercel y Twilio quedan activos
-> 3. **Post-DNS propagado:** Claude actualiza URLs (APP_URL en Vercel, Google Cloud, Twilio webhook)
-> 4. **Siguiente feature:** modal "+ Turno" en agenda, o activar auth real eliminando NEXT_PUBLIC_PROFESIONAL_ID
+> 1. Activar auth real (eliminar NEXT_PUBLIC_PROFESIONAL_ID de Vercel) + probar registro → onboarding → dashboard
+> 2. Funcionalidad completa en /agenda (+ Turno, cancelar, completar)
+> 3. O avanzar con Fase 3: MercadoPago / recordatorios
 
 ---
 
@@ -73,8 +73,9 @@ MCP de Twilio configurado en `.claude/settings.local.json` — se activa reinici
 |-------|---------------|--------------|
 | 29/04/2026 | Estructura inicial, deploy Vercel, panel web básico | OAuth Google Calendar |
 | 30/04/2026 | Supabase cloud, OAuth Google Calendar, webhook Twilio, deploy prod | Agente Claude con tool use |
-| 30/04/2026 | Tool use completo (4 herramientas), deploy | Verificar e2e, Paso 5 Google Calendar |
-| 30/04/2026 | Fix system prompt (flujo bloqueado en confirmación), deploy vía GitHub | Verificar e2e con WhatsApp |
+| 30/04/2026 | Tool use completo (4 herramientas), fix system prompt | Verificar e2e con WhatsApp |
 | 01/05/2026 | Pivot a Calendaria SaaS: docs, design tokens, sidebar, landing page | Panel con datos reales |
-| 02/05/2026 mañana | Config agente→Supabase, agenda calendario, auth completo, middleware, onboarding, MCP servers | Verificar WhatsApp e2e + Google Calendar Paso 5 |
-| 02/05/2026 tarde | WhatsApp e2e verificado, Google Calendar Paso 5, fix contaminación historial, dominio calendaria.com.ar, MCP Twilio | Cargar DNS en NIC + reiniciar Claude Code |
+| 02/05/2026 mañana | Config agente→Supabase, agenda, auth, middleware, onboarding, MCP servers | WhatsApp e2e |
+| 02/05/2026 tarde | WhatsApp e2e verificado, Google Calendar Paso 5, dominio, MCP Twilio | DNS + multi-tenant |
+| 02/05/2026 noche | Multi-tenant WhatsApp (slug), agregar paciente proactivo, arquitectura 1 número compartido | DNS + slug en onboarding |
+| 03/05/2026 | DNS live (calendaria.com.ar), slug en onboarding, post-DNS completo (Twilio+GCloud+Vercel) | Auth real + /agenda modal |
