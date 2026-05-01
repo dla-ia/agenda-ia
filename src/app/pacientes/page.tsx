@@ -46,6 +46,8 @@ const estadoBadge: Record<string, string> = {
   no_asistio: 'badge-error',
 };
 
+const MSG_DEFAULT = `¡Hola {nombre}! Te escribo de parte de tu profesional. A partir de ahora podés gestionar tus turnos directamente por acá con Aurora, mi asistente virtual 😊 ¿Querés sacar un turno?`;
+
 export default function PacientesPage() {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [detalle, setDetalle] = useState<PacienteDetalle | null>(null);
@@ -53,6 +55,36 @@ export default function PacientesPage() {
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+
+  // Modal agregar paciente
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [formNombre, setFormNombre] = useState('');
+  const [formTelefono, setFormTelefono] = useState('');
+  const [formMensaje, setFormMensaje] = useState(MSG_DEFAULT);
+  const [enviando, setEnviando] = useState(false);
+  const [errorModal, setErrorModal] = useState('');
+
+  function abrirModal() {
+    setFormNombre(''); setFormTelefono(''); setFormMensaje(MSG_DEFAULT); setErrorModal('');
+    setModalAbierto(true);
+  }
+
+  async function agregarPaciente(e: React.FormEvent) {
+    e.preventDefault();
+    if (!formNombre.trim() || !formTelefono.trim()) return;
+    setEnviando(true); setErrorModal('');
+    const mensajeFinal = formMensaje.replace('{nombre}', formNombre.trim());
+    const res = await fetch('/api/data/pacientes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: formNombre.trim(), telefono: formTelefono.trim(), mensajeInicial: mensajeFinal }),
+    });
+    const data = await res.json();
+    setEnviando(false);
+    if (!res.ok) { setErrorModal(data.error ?? 'Error al agregar'); return; }
+    setModalAbierto(false);
+    fetch('/api/data/pacientes').then(r => r.json()).then(d => setPacientes(Array.isArray(d) ? d : []));
+  }
 
   useEffect(() => {
     fetch('/api/data/pacientes')
@@ -90,9 +122,14 @@ export default function PacientesPage() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
               Pacientes
             </h1>
-            <span style={{ fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
-              {pacientes.length}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
+                {pacientes.length}
+              </span>
+              <button onClick={abrirModal} className="btn btn-primary btn-sm" style={{ fontSize: 12, padding: '4px 10px' }}>
+                + Paciente
+              </button>
+            </div>
           </div>
           <input
             type="text"
@@ -248,6 +285,74 @@ export default function PacientesPage() {
             <circle cx="9" cy="7" r="4" />
           </svg>
           <p style={{ color: 'var(--ink-3)', fontSize: 14 }}>Seleccioná un paciente</p>
+        </div>
+      )}
+
+      {/* ── Modal agregar paciente ── */}
+      {modalAbierto && (
+        <div
+          onClick={() => setModalAbierto(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <form
+            onClick={e => e.stopPropagation()}
+            onSubmit={agregarPaciente}
+            style={{ background: 'var(--surface)', borderRadius: 14, padding: 28, width: 440, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}
+          >
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
+              Agregar paciente
+            </h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, color: 'var(--ink-2)', fontWeight: 500 }}>Nombre</label>
+              <input
+                className="input"
+                placeholder="María González"
+                value={formNombre}
+                onChange={e => setFormNombre(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, color: 'var(--ink-2)', fontWeight: 500 }}>Teléfono WhatsApp</label>
+              <input
+                className="input"
+                placeholder="1159530792 o +5491159530792"
+                value={formTelefono}
+                onChange={e => setFormTelefono(e.target.value)}
+                required
+                type="tel"
+              />
+              <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>Argentina: podés escribir el número sin código de país</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, color: 'var(--ink-2)', fontWeight: 500 }}>
+                Mensaje inicial <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>— {'{nombre}'} se reemplaza con el nombre</span>
+              </label>
+              <textarea
+                className="input"
+                rows={4}
+                value={formMensaje}
+                onChange={e => setFormMensaje(e.target.value)}
+                required
+                style={{ resize: 'vertical', lineHeight: 1.5 }}
+              />
+            </div>
+
+            {errorModal && (
+              <p style={{ fontSize: 12, color: 'var(--error, #c0392b)', margin: 0 }}>{errorModal}</p>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button type="button" className="btn" onClick={() => setModalAbierto(false)}>Cancelar</button>
+              <button type="submit" className="btn btn-primary" disabled={enviando}>
+                {enviando ? 'Enviando...' : 'Agregar y enviar WhatsApp'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
