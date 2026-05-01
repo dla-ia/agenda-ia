@@ -67,13 +67,13 @@ export async function POST(request: NextRequest) {
       direccion: 'entrante',
     });
 
-    // Obtener historial previo (sin el mensaje actual)
+    // Obtener historial previo (sin el mensaje actual) — 10 mensajes para evitar contaminación de contexto
     const { data: mensajesAnteriores } = await supabase
       .from('mensajes')
       .select('contenido, direccion')
       .eq('conversacion_id', conversacion!.id)
       .order('created_at', { ascending: true })
-      .limit(21);
+      .limit(10);
 
     const historial: Message[] = (mensajesAnteriores || [])
       .slice(0, -1) // excluir el último (recién guardado)
@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
     // Procesar con Claude
     const context: ConversationContext = {
       profesionalId: PROFESIONAL_ID,
+      conversacionId: conversacion!.id,
       telefono,
       historial,
     };

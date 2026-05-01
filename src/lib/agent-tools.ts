@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getCalendarClient } from './google-calendar';
 
 function getAdminClient() {
   return createClient(
@@ -98,7 +99,8 @@ export async function executeTool(
   toolName: string,
   toolInput: Record<string, unknown>,
   profesionalId: string,
-  telefono: string
+  telefono: string,
+  conversacionId?: string
 ): Promise<unknown> {
   const supabase = getAdminClient();
 
@@ -236,6 +238,36 @@ export async function executeTool(
       const fechaLegible =
         `${DIAS_SEMANA[arg.getUTCDay()]} ${arg.getUTCDate()} de ${MESES[arg.getUTCMonth()]} ` +
         `a las ${String(arg.getUTCHours()).padStart(2, '0')}:${String(arg.getUTCMinutes()).padStart(2, '0')}hs`;
+
+      // Cerrar conversación para que el próximo mensaje empiece limpio
+      if (conversacionId) {
+        supabase.from('conversaciones').update({ estado: 'completada' }).eq('id', conversacionId).then(() => {});
+      }
+
+      // Crear evento en Google Calendar (best-effort, no bloquea la confirmación)
+      try {
+        const { data: prof } = await supabase
+          .from('profesionales')
+          .select('google_calendar_token, nombre')
+          .eq('id', profesionalId)
+          .single();
+
+        if (prof?.google_calendar_token) {
+          const calendar = getCalendarClient(prof.google_calendar_token as object);
+          const endTime = new Date(new Date(turno.fecha_hora).getTime() + 50 * 60 * 1000);
+          await calendar.events.insert({
+            calendarId: 'primary',
+            requestBody: {
+              summary: `Turno - ${nombrePaciente}`,
+              description: `Turno agendado por Aurora vía WhatsApp.\nTeléfono: ${telefono}`,
+              start: { dateTime: turno.fecha_hora, timeZone: 'America/Argentina/Buenos_Aires' },
+              end:   { dateTime: endTime.toISOString(), timeZone: 'America/Argentina/Buenos_Aires' },
+            },
+          });
+        }
+      } catch (calErr) {
+        console.error('[Google Calendar] Error creando evento:', calErr);
+      }
 
       return { success: true, turno_id: turno.id, fecha_confirmada: fechaLegible };
     }

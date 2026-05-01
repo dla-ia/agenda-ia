@@ -15,6 +15,7 @@ export interface Message {
 
 export interface ConversationContext {
   profesionalId: string;
+  conversacionId?: string;
   pacienteId?: string;
   telefono: string;
   nombrePaciente?: string;
@@ -174,7 +175,8 @@ export async function sendMessage(
               block.name,
               block.input as Record<string, unknown>,
               context.profesionalId,
-              context.telefono
+              context.telefono,
+              context.conversacionId
             );
           } catch (err) {
             result = { error: `Error ejecutando ${block.name}: ${String(err)}` };
