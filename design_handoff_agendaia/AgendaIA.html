@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>AgendaIA · Prototipo</title>
+<meta name="viewport" content="width=1440, initial-scale=1" />
+<link rel="stylesheet" href="styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="components/shared.jsx"></script>
+<script type="text/babel" src="components/dashboard.jsx"></script>
+<script type="text/babel" src="components/conversaciones.jsx"></script>
+<script type="text/babel" src="components/agenda.jsx"></script>
+<script type="text/babel" src="components/agente.jsx"></script>
+<script type="text/babel" src="components/pacientes.jsx"></script>
+<script type="text/babel" src="components/chat-mockup.jsx"></script>
+<script type="text/babel" src="components/payment.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+const TWEAKS = /*EDITMODE-BEGIN*/{
+  "primary": "#C26A4A",
+  "tone": "warm",
+  "showReasoning": true,
+  "density": "comfortable"
+}/*EDITMODE-END*/;
+
+// App shell — sidebar + view router. Used inside the dashboard artboard.
+const App = ({ initialView = "dashboard", showReasoning = true }) => {
+  const [view, setView] = useState(initialView);
+  return (
+    <div style={{ display: "flex", height: "100%", background: "var(--bg)", overflow: "hidden", borderRadius: 14 }}>
+      <Sidebar active={view} onNav={setView} />
+      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {view === "dashboard" && <Dashboard showReasoning={showReasoning} />}
+        {view === "chats" && <ConversacionesView />}
+        {view === "agenda" && <AgendaView />}
+        {view === "pacientes" && <PacientesView />}
+        {view === "agente" && <AgenteConfig />}
+      </div>
+    </div>
+  );
+};
+
+// Variant B — different metric layout (single hero metric + smaller cards)
+const DashboardHero = ({ showReasoning = true }) => (
+  <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+    <TopBar
+      title="Buen día, Lucía"
+      subtitle="Martes 5 de mayo · Tu agente atendió 14 conversaciones desde anoche"
+      right={<>
+        <button className="btn btn-sm"><Icon name="bell" size={14} /></button>
+        <button className="btn btn-primary btn-sm"><Icon name="plus" size={14} /> Nuevo turno</button>
+      </>}
+    />
+    <div className="scroll-styled" style={{ flex: 1, overflow: "auto", padding: "24px 32px 32px" }}>
+      {/* Hero — semana */}
+      <div className="card" style={{ padding: 28, marginBottom: 20, background: "linear-gradient(135deg, #EFE6DA 0%, #E5D7C5 100%)", borderColor: "var(--line-2)" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 32, alignItems: "center" }}>
+          <div>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Esta semana</div>
+            <div style={{ fontFamily: "var(--font-serif)", fontSize: 64, fontWeight: 500, lineHeight: 1, letterSpacing: "-0.02em", color: "var(--ink)" }}>23</div>
+            <div style={{ fontSize: 14, color: "var(--ink-2)", marginTop: 6 }}>turnos reservados <span className="delta-up">↑ 4 vs semana pasada</span></div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, paddingLeft: 24, borderLeft: "1px solid var(--line-2)" }}>
+            <MiniM label="Señas cobradas" value="$184k" sub="↑ 12%" />
+            <MiniM label="No-show" value="6%" sub="↓ 3 pts" />
+            <MiniM label="Horas ahorradas" value="11h" sub="este mes" />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
+            <button className="btn btn-primary btn-sm">Ver agenda</button>
+            <button className="btn btn-sm">Reporte mes</button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 18 }}>
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line)" }}>
+            <h3 className="h3">Lo que hizo tu agente</h3>
+            <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>Últimas 24 horas · 14 acciones</div>
+          </div>
+          <div style={{ padding: "4px 0" }}>
+            {[
+              { i: "calCheck", c: "var(--sage)", n: "Mariana Costa", d: "Reservó turno · Mar 5/5 · 16:00", t: "hace 4 min", conf: 96 },
+              { i: "wallet", c: "var(--olive)", n: "Tomás Ibáñez", d: "Pagó seña $8.000 · MercadoPago", t: "hace 18 min" },
+              { i: "flag", c: "var(--terracotta)", n: "Sofía Pérez", d: "Pidió tarifa social — esperando tu respuesta", t: "hace 32 min", review: true, conf: 62 },
+              { i: "refresh", c: "var(--ink-3)", n: "Diego Romero", d: "Reagendó al jueves 11:00", t: "hace 1 h", conf: 91 },
+              { i: "bell", c: "var(--ink-3)", n: "Camila Ruiz", d: "Envió recordatorio 24h previo", t: "hace 2 h" },
+            ].map((a, idx) => (
+              <div key={idx} className="row-hover" style={{ display: "flex", gap: 12, padding: "12px 18px", borderBottom: "1px solid var(--line)", alignItems: "flex-start" }}>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--bg-2)", display: "flex", alignItems: "center", justifyContent: "center", color: a.c, flexShrink: 0 }}>
+                  <Icon name={a.i} size={15} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 500 }}>{a.n} <span style={{ color: "var(--ink-3)", fontWeight: 400, fontSize: 11.5 }}>· {a.t}</span></div>
+                  <div style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 2 }}>{a.d}</div>
+                  {showReasoning && a.conf && (
+                    <div className="ai-thinking" style={{ marginTop: 7 }}>
+                      <Icon name="sparkles" size={10} /> confianza {a.conf}% · {a.conf > 80 ? "ejecutado solo" : "requiere revisión"}
+                    </div>
+                  )}
+                </div>
+                {a.review && <button className="btn btn-sm btn-primary">Responder</button>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--line)" }}>
+              <h3 className="h3">Hoy</h3>
+              <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>6 turnos · próximo en 47 min</div>
+            </div>
+            {[
+              { time: "10:00", patient: "Florencia Méndez", status: "confirmado" },
+              { time: "11:00", patient: "Tomás Ibáñez", status: "seña pagada", first: true },
+              { time: "13:00", patient: "Almuerzo", status: "bloqueado" },
+              { time: "15:00", patient: "Mariana Costa", status: "confirmado" },
+              { time: "16:00", patient: "Camila Ruiz", status: "pendiente" },
+              { time: "17:00", patient: "Diego Romero", status: "confirmado" },
+            ].map((t, i) => (
+              <div key={i} style={{ display: "flex", gap: 14, padding: "10px 18px", borderBottom: i < 5 ? "1px solid var(--line)" : "none", alignItems: "center" }}>
+                <div className="mono" style={{ fontSize: 12, color: "var(--ink-2)", width: 44 }}>{t.time}</div>
+                <div style={{ flex: 1, fontSize: 13.5, fontWeight: 450 }}>
+                  {t.patient}
+                  {t.first && <span className="badge badge-info" style={{ marginLeft: 6, fontSize: 10 }}>nuevo</span>}
+                </div>
+                <Badge kind={t.status === "seña pagada" ? "success" : t.status === "pendiente" ? "warn" : "default"}>{t.status}</Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const MiniM = ({ label, value, sub }) => (
+  <div>
+    <div className="eyebrow" style={{ marginBottom: 5, fontSize: 10 }}>{label}</div>
+    <div className="serif tabular" style={{ fontSize: 24, fontWeight: 500, lineHeight: 1.1 }}>{value}</div>
+    <div className="delta-up" style={{ fontSize: 11.5, fontWeight: 500, marginTop: 3 }}>{sub}</div>
+  </div>
+);
+
+const AppHero = () => {
+  const [view, setView] = useState("dashboard");
+  return (
+    <div style={{ display: "flex", height: "100%", background: "var(--bg)", overflow: "hidden", borderRadius: 14 }}>
+      <Sidebar active={view} onNav={setView} />
+      <div style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {view === "dashboard" && <DashboardHero showReasoning={true} />}
+        {view === "chats" && <ConversacionesView />}
+        {view === "agenda" && <AgendaView />}
+        {view === "pacientes" && <PacientesView />}
+        {view === "agente" && <AgenteConfig />}
+      </div>
+    </div>
+  );
+};
+
+const Phone = ({ tone }) => (
+  <IOSDevice width={360} height={780}>
+    <ChatMockup tone={tone} />
+  </IOSDevice>
+);
+
+// ===== Tweaks panel =====
+const Root = () => {
+  const [t, setT] = useTweaks(TWEAKS);
+
+  // Apply primary color globally
+  useEffect(() => {
+    document.documentElement.style.setProperty("--terracotta", t.primary);
+  }, [t.primary]);
+
+  return <>
+    <DesignCanvas title="AgendaIA" subtitle="Agente de WhatsApp para psicólogos · prototipo">
+      <DCSection id="dashboards" title="Dashboard del psicólogo" subtitle="Dos direcciones — feed de actividad vs. métrica heroica">
+        <DCArtboard id="dash-a" label="Dashboard · feed primero" width={1280} height={820}>
+          <App initialView="dashboard" showReasoning={t.showReasoning} />
+        </DCArtboard>
+        <DCArtboard id="dash-b" label="Dashboard · métrica heroica" width={1280} height={820}>
+          <AppHero />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="chats" title="Centro de conversaciones" subtitle="El psicólogo monitorea lo que su agente hace en WhatsApp y aprueba casos sensibles">
+        <DCArtboard id="conv" label="Conversaciones · caso para revisar" width={1280} height={820}>
+          <App initialView="chats" showReasoning={t.showReasoning} />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="agenda" title="Agenda" subtitle="Sincronizada con Google Calendar">
+        <DCArtboard id="agenda-art" label="Agenda semanal" width={1280} height={820}>
+          <App initialView="agenda" showReasoning={t.showReasoning} />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="pacientes-sec" title="Pacientes" subtitle="Historial, contexto y conversación reciente del agente">
+        <DCArtboard id="pac" label="Ficha de paciente" width={1280} height={820}>
+          <App initialView="pacientes" showReasoning={t.showReasoning} />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="agente-sec" title="Configuración del agente" subtitle="Personalidad, reglas, precios e integraciones">
+        <DCArtboard id="ag" label="Agente IA" width={1280} height={820}>
+          <App initialView="agente" showReasoning={t.showReasoning} />
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="paciente" title="La vista del paciente" subtitle="Cómo se siente recibir al agente en WhatsApp + el flujo de seña">
+        <DCArtboard id="phone-warm" label="WhatsApp · tono cálido" width={400} height={820}>
+          <Phone tone={t.tone} />
+        </DCArtboard>
+        <DCArtboard id="phone-direct" label="WhatsApp · tono directo" width={400} height={820}>
+          <Phone tone="direct" />
+        </DCArtboard>
+        <DCArtboard id="phone-casual" label="WhatsApp · tono casual" width={400} height={820}>
+          <Phone tone="casual" />
+        </DCArtboard>
+        <DCArtboard id="payment" label="Seña · MercadoPago" width={400} height={820}>
+          <IOSDevice width={360} height={780}>
+            <PaymentScreen />
+          </IOSDevice>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+
+    <TweaksPanel title="Tweaks">
+      <TweakSection title="Marca">
+        <TweakColor label="Color primario" value={t.primary} onChange={v => setT("primary", v)} />
+      </TweakSection>
+      <TweakSection title="Agente IA">
+        <TweakRadio
+          label="Tono en WhatsApp"
+          value={t.tone}
+          onChange={v => setT("tone", v)}
+          options={[
+            { value: "warm", label: "Cálido" },
+            { value: "direct", label: "Directo" },
+            { value: "casual", label: "Casual" },
+          ]}
+        />
+        <TweakToggle
+          label="Mostrar razonamiento"
+          description="Ver intención, confianza y por qué actuó el agente"
+          value={t.showReasoning}
+          onChange={v => setT("showReasoning", v)}
+        />
+      </TweakSection>
+    </TweaksPanel>
+  </>;
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Root />);
+</script>
+</body>
+</html>

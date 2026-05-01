@@ -1,6 +1,8 @@
 # Supabase local configuration
 # Run: npx supabase start
 
+project_id = "aikwrtxmkdthnsnrnjng"
+
 [api]
 enabled = true
 port = 54321
@@ -21,8 +23,7 @@ max_client_conn = 100
 
 [realtime]
 enabled = true
-port = 54324
-ip_version = "ipv4"
+ip_version = "IPv4"
 
 [studio]
 enabled = true

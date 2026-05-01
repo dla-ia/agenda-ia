@@ -1,188 +1,216 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-const conversaciones = [
-  {
-    id: '1',
-    paciente: 'María González',
-    telefono: '+54 9 11 1234-5678',
-    ultimoMensaje: 'Confirmo el turno para mañana a las 9hs',
-    ultimoMensajeAt: '2026-04-29T10:30:00',
-    estado: 'activa',
-    mensajes: [
-      { id: '1', contenido: 'Hola, quería saber si hay turno disponible', direccion: 'entrante', created_at: '2026-04-29T10:00:00' },
-      { id: '2', contenido: '¡Hola María! Sí, tenemos disponibilidad. ¿Qué día te conviene?', direccion: 'saliente', created_at: '2026-04-29T10:01:00' },
-      { id: '3', contenido: 'Tengo libre el martes o miércoles por la mañana', direccion: 'entrante', created_at: '2026-04-29T10:05:00' },
-      { id: '4', contenido: 'Perfecto, el martes a las 9hs o el miércoles a las 10hs. ¿Cuál te va?', direccion: 'saliente', created_at: '2026-04-29T10:06:00' },
-      { id: '5', contenido: 'El martes a las 9hs me va bien. Confirmo.', direccion: 'entrante', created_at: '2026-04-29T10:30:00' },
-    ]
-  },
-  {
-    id: '2',
-    paciente: 'Carlos López',
-    telefono: '+54 9 11 2345-6789',
-    ultimoMensaje: 'Tengo disponible el martes a las 14hs',
-    ultimoMensajeAt: '2026-04-29T09:15:00',
-    estado: 'activa',
-    mensajes: [
-      { id: '1', contenido: 'Buenas, necesito un turno', direccion: 'entrante', created_at: '2026-04-29T09:00:00' },
-      { id: '2', contenido: '¡Hola Carlos! ¿Qué día y horario te viene mejor?', direccion: 'saliente', created_at: '2026-04-29T09:01:00' },
-      { id: '3', contenido: 'Tengo disponible el martes a las 14hs', direccion: 'entrante', created_at: '2026-04-29T09:15:00' },
-    ]
-  },
-  {
-    id: '3',
-    paciente: 'Ana Martínez',
-    telefono: '+54 9 11 3456-7890',
-    ultimoMensaje: 'Perfecto, nos vemos el viernes',
-    ultimoMensajeAt: '2026-04-28T16:20:00',
-    estado: 'archivada',
-    mensajes: [
-      { id: '1', contenido: 'Hola, tengo que cancelar mi turno del viernes', direccion: 'entrante', created_at: '2026-04-28T15:00:00' },
-      { id: '2', contenido: '¡Hola Ana! No hay problema. ¿Querés reprogramar?', direccion: 'saliente', created_at: '2026-04-28T15:01:00' },
-      { id: '3', contenido: 'Sí, puedo el lunes que viene', direccion: 'entrante', created_at: '2026-04-28T15:30:00' },
-      { id: '4', contenido: 'Te reservo el lunes a las 11hs. Confirmado.', direccion: 'saliente', created_at: '2026-04-28T15:31:00' },
-      { id: '5', contenido: 'Perfecto, nos vemos el viernes', direccion: 'entrante', created_at: '2026-04-28T16:20:00' },
-    ]
-  },
-];
+interface Conversacion {
+  id: string;
+  telefono: string;
+  ultimo_mensaje?: string;
+  ultimo_mensaje_at: string;
+  estado: string;
+  pacientes?: { nombre: string } | null;
+}
+
+interface Mensaje {
+  id: string;
+  contenido: string;
+  direccion: 'entrante' | 'saliente';
+  created_at: string;
+}
+
+function formatRelativo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'ahora';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return new Date(iso).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+}
+
+function formatHora(iso: string) {
+  return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function Avatar({ nombre, size = 36 }: { nombre: string; size?: number }) {
+  const colors = ['#D6BFA6', '#C4A586', '#B5A188', '#A8957A', '#C9B89A', '#D4B5A0'];
+  const color = colors[nombre.charCodeAt(0) % colors.length];
+  return (
+    <div style={{ width: size, height: size, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: size * 0.38, color: 'var(--ink-2)', border: '1px solid var(--line)', flexShrink: 0 }}>
+      {nombre.charAt(0).toUpperCase()}
+    </div>
+  );
+}
 
 export default function ConversacionesPage() {
-  const [conversacionSeleccionada, setConversacionSeleccionada] = useState<string | null>(null);
-  const [filtroEstado, setFiltroEstado] = useState<'todas' | 'activa' | 'archivada'>('todas');
+  const [convs, setConvs] = useState<Conversacion[]>([]);
+  const [mensajes, setMensajes] = useState<Mensaje[]>([]);
+  const [seleccionada, setSeleccionada] = useState<Conversacion | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [cargandoMsgs, setCargandoMsgs] = useState(false);
+  const [filtro, setFiltro] = useState<'todas' | 'activa' | 'archivada'>('todas');
+  const chatRef = useRef<HTMLDivElement>(null);
 
-  const conversacionesFiltradas = conversaciones.filter(c => 
-    filtroEstado === 'todas' ? true : c.estado === filtroEstado
-  );
+  useEffect(() => {
+    fetch('/api/data/conversaciones')
+      .then(r => r.json())
+      .then(data => { setConvs(Array.isArray(data) ? data : []); setCargando(false); })
+      .catch(() => setCargando(false));
+  }, []);
 
-  const formatFecha = (fecha: string) => {
-    const d = new Date(fecha);
-    const now = new Date();
-    const diff = now.getTime() - d.getTime();
-    const horas = diff / (1000 * 60 * 60);
-    
-    if (horas < 1) return 'Hace unos minutos';
-    if (horas < 24) return `Hace ${Math.floor(horas)}h`;
-    return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
-  };
+  useEffect(() => {
+    if (!seleccionada) return;
+    setCargandoMsgs(true);
+    fetch(`/api/data/conversaciones?id=${seleccionada.id}`)
+      .then(r => r.json())
+      .then(data => { setMensajes(Array.isArray(data) ? data : []); setCargandoMsgs(false); })
+      .catch(() => setCargandoMsgs(false));
+  }, [seleccionada]);
 
-  const convActual = conversaciones.find(c => c.id === conversacionSeleccionada);
+  useEffect(() => {
+    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+  }, [mensajes]);
+
+  const convsFiltradas = convs.filter(c => filtro === 'todas' || c.estado === filtro);
+  const nombreConv = (c: Conversacion) => c.pacientes?.nombre ?? c.telefono;
 
   return (
-    <div className="p-6 lg:p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Conversaciones</h1>
-        <p className="text-gray-500">Chat con pacientes via WhatsApp</p>
-      </div>
+    <div style={{ display: 'flex', height: 'calc(100vh - 0px)', overflow: 'hidden' }}>
 
-      {/* Filtros */}
-      <div className="mb-6 flex gap-2">
-        <button
-          onClick={() => setFiltroEstado('todas')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium ${
-            filtroEstado === 'todas' 
-              ? 'bg-primary-600 text-white' 
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          Todas
-        </button>
-        <button
-          onClick={() => setFiltroEstado('activa')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium ${
-            filtroEstado === 'activa' 
-              ? 'bg-primary-600 text-white' 
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          Activas
-        </button>
-        <button
-          onClick={() => setFiltroEstado('archivada')}
-          className={`rounded-lg px-4 py-2 text-sm font-medium ${
-            filtroEstado === 'archivada' 
-              ? 'bg-primary-600 text-white' 
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          Archivadas
-        </button>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Lista de conversaciones */}
-        <div className="rounded-lg bg-white shadow-sm lg:col-span-1">
-          <div className="divide-y">
-            {conversacionesFiltradas.map((conv) => (
+      {/* ── Lista lateral ── */}
+      <div style={{ width: 300, borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', flexShrink: 0, background: 'var(--surface)' }}>
+        {/* Header lista */}
+        <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid var(--line)' }}>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500, color: 'var(--ink)', margin: '0 0 14px', letterSpacing: '-0.01em' }}>
+            Conversaciones
+          </h1>
+          {/* Filtro segmentado */}
+          <div style={{ display: 'flex', background: 'var(--bg-2)', borderRadius: 10, padding: 3, gap: 2 }}>
+            {(['todas', 'activa', 'archivada'] as const).map(f => (
               <button
-                key={conv.id}
-                onClick={() => setConversacionSeleccionada(conv.id)}
-                className={`w-full px-4 py-4 text-left hover:bg-gray-50 ${
-                  conversacionSeleccionada === conv.id ? 'bg-primary-50' : ''
-                }`}
+                key={f}
+                onClick={() => setFiltro(f)}
+                style={{
+                  flex: 1,
+                  padding: '5px 0',
+                  borderRadius: 8,
+                  border: 'none',
+                  fontSize: 12,
+                  fontWeight: filtro === f ? 500 : 400,
+                  background: filtro === f ? 'var(--surface-2)' : 'transparent',
+                  color: filtro === f ? 'var(--ink)' : 'var(--ink-3)',
+                  boxShadow: filtro === f ? 'var(--shadow-sm)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease',
+                }}
               >
-                <div className="flex items-center justify-between">
-                  <p className="font-medium text-gray-900">{conv.paciente}</p>
-                  <span className="text-xs text-gray-400">{formatFecha(conv.ultimoMensajeAt)}</span>
-                </div>
-                <p className="mt-1 text-sm text-gray-500 truncate">{conv.ultimoMensaje}</p>
-                <p className="mt-1 text-xs text-gray-400">{conv.telefono}</p>
+                {f === 'todas' ? 'Todo' : f === 'activa' ? 'Activas' : 'Archivadas'}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Detalle de conversación */}
-        <div className="rounded-lg bg-white shadow-sm lg:col-span-2">
-          {convActual ? (
-            <>
-              <div className="border-b px-6 py-4">
-                <h2 className="text-lg font-semibold text-gray-900">{convActual.paciente}</h2>
-                <p className="text-sm text-gray-500">{convActual.telefono}</p>
-              </div>
-              <div className="h-96 overflow-y-auto p-6 space-y-4">
-                {convActual.mensajes.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.direccion === 'entrante' ? 'justify-start' : 'justify-end'}`}
-                  >
-                    <div
-                      className={`max-w-xs rounded-lg px-4 py-2 ${
-                        msg.direccion === 'entrante'
-                          ? 'bg-gray-100 text-gray-900'
-                          : 'bg-primary-600 text-white'
-                      }`}
-                    >
-                      <p className="text-sm">{msg.contenido}</p>
-                      <p className={`text-xs mt-1 ${msg.direccion === 'entrante' ? 'text-gray-500' : 'text-primary-200'}`}>
-                        {new Date(msg.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="border-t p-4">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Escribir mensaje..."
-                    className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                  />
-                  <button className="rounded-lg bg-primary-600 px-4 py-2 text-white hover:bg-primary-700">
-                    Enviar
-                  </button>
-                </div>
-              </div>
-            </>
+        {/* Items */}
+        <div className="scroll-styled" style={{ flex: 1, overflowY: 'auto' }}>
+          {cargando ? (
+            <div style={{ padding: 20, color: 'var(--ink-3)', fontSize: 13, textAlign: 'center' }}>Cargando...</div>
+          ) : convsFiltradas.length === 0 ? (
+            <div style={{ padding: 20, color: 'var(--ink-3)', fontSize: 13, textAlign: 'center' }}>Sin conversaciones</div>
           ) : (
-            <div className="flex h-96 items-center justify-center text-gray-400">
-              <p>Seleccioná una conversación</p>
-            </div>
+            convsFiltradas.map(c => {
+              const activa = seleccionada?.id === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setSeleccionada(c)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    textAlign: 'left',
+                    border: 'none',
+                    borderLeft: activa ? '3px solid var(--terracotta)' : '3px solid transparent',
+                    background: activa ? 'var(--bg-2)' : 'transparent',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    gap: 10,
+                    alignItems: 'flex-start',
+                    transition: 'background 0.12s ease',
+                  }}
+                >
+                  <Avatar nombre={nombreConv(c)} size={36} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {nombreConv(c)}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', flexShrink: 0, marginLeft: 8 }}>
+                        {formatRelativo(c.ultimo_mensaje_at)}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {c.ultimo_mensaje ?? '—'}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
           )}
         </div>
       </div>
+
+      {/* ── Panel de chat ── */}
+      {seleccionada ? (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          {/* Header chat */}
+          <div style={{ padding: '14px 20px', background: '#F0EAE0', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Avatar nombre={nombreConv(seleccionada)} size={36} />
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{nombreConv(seleccionada)}</p>
+              <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: 0, fontFamily: 'var(--font-mono)' }}>{seleccionada.telefono}</p>
+            </div>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <span className={`badge ${seleccionada.estado === 'activa' ? 'badge-success' : ''}`}>
+                {seleccionada.estado}
+              </span>
+              <button className="btn btn-sm">Tomar control</button>
+            </div>
+          </div>
+
+          {/* Mensajes */}
+          <div ref={chatRef} className="chat-area scroll-styled" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {cargandoMsgs ? (
+              <div style={{ textAlign: 'center', color: 'var(--ink-3)', fontSize: 13, marginTop: 40 }}>Cargando mensajes...</div>
+            ) : mensajes.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--ink-3)', fontSize: 13, marginTop: 40 }}>Sin mensajes</div>
+            ) : (
+              mensajes.map(m => (
+                <div key={m.id} style={{ display: 'flex', flexDirection: 'column', alignItems: m.direccion === 'entrante' ? 'flex-start' : 'flex-end' }}>
+                  <div className={`chat-bubble ${m.direccion === 'entrante' ? 'chat-in' : 'chat-out'}`}>
+                    {m.contenido}
+                    <div className="chat-meta">
+                      <span className="chat-time">{formatHora(m.created_at)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Footer — nota del agente */}
+          <div style={{ padding: '12px 20px', background: 'var(--bg-2)', borderTop: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+              ✦ Aurora está manejando esta conversación automáticamente
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--line-2)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <p style={{ color: 'var(--ink-3)', fontSize: 14 }}>Seleccioná una conversación</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,62 +1,100 @@
-# Arquitectura del Proyecto
+# Arquitectura de Calendaria
 
 ## Visión general
-AgendaIA es un agente conversacional de IA que gestiona la agenda de un psicólogo de forma autónoma por WhatsApp. El sistema recibe mensajes de pacientes via Twilio, procesa las solicitudes con Claude API, y sincroniza turnos con Google Calendar del profesional.
+Calendaria es un SaaS multi-tenant donde cada profesional tiene su propio agente IA que gestiona turnos vía WhatsApp. La plataforma soporta cualquier tipo de profesional: psicólogos, odontólogos, mecánicos, nutricionistas, etc.
 
 ## Estructura de carpetas
 ```
 /
 ├── src/
-│   ├── app/               → Next.js 14 App Router
-│   │   ├── page.tsx       → Dashboard principal
-│   │   ├── layout.tsx     → Layout raíz
-│   │   └── globals.css   → Estilos globales
+│   ├── app/
+│   │   ├── page.tsx              → Landing page pública (marketing)
+│   │   ├── layout.tsx            → Root layout (fonts, metadata)
+│   │   ├── dashboard-layout.tsx  → Sidebar + topbar del panel del profesional
+│   │   ├── globals.css           → Design tokens + utilidades CSS
+│   │   ├── dashboard/
+│   │   │   └── page.tsx          → Resumen de actividad del agente
+│   │   ├── conversaciones/
+│   │   │   └── page.tsx          → Inbox WhatsApp + razonamiento IA
+│   │   ├── agenda/
+│   │   │   └── page.tsx          → Calendario semanal sincronizado
+│   │   ├── pacientes/
+│   │   │   └── page.tsx          → Lista + ficha de pacientes/clientes
+│   │   ├── agente/
+│   │   │   └── page.tsx          → Config del agente IA (5 tabs)
+│   │   ├── auth/
+│   │   │   └── page.tsx          → Login / registro de profesionales
+│   │   ├── onboarding/
+│   │   │   └── page.tsx          → Wizard de setup inicial
+│   │   └── api/
+│   │       ├── webhooks/
+│   │       │   └── twilio/route.ts   → Recibe mensajes WhatsApp
+│   │       └── auth/
+│   │           └── google/route.ts   → OAuth Google Calendar
+│   ├── components/
+│   │   ├── ui/                   → Card, Button, Badge, Avatar, Toggle, Tabs
+│   │   ├── layout/               → Sidebar, TopBar
+│   │   ├── dashboard/            → MetricCard, ActivityFeed, AgendaHoy
+│   │   ├── conversaciones/       → ChatPane, ReasoningPanel, ChatBubble
+│   │   ├── agenda/               → WeekCalendar, AppointmentModal
+│   │   ├── pacientes/            → PatientList, PatientDetail
+│   │   └── agente/               → PersonalidadTab, ReglasTab, PreciosTab, etc.
 │   ├── lib/
-│   │   ├── supabase.ts   → Cliente Supabase + tipos
-│   │   └── claude-agent.ts → Cliente Claude API
-│   └── types/             → Tipos TypeScript adicionales
+│   │   ├── supabase.ts           → Cliente Supabase + tipos
+│   │   ├── claude-agent.ts       → Agente Claude con tool use
+│   │   ├── agent-tools.ts        → Herramientas del agente
+│   │   └── google-calendar.ts    → Google Calendar API
+│   └── types/
+│       └── supabase.ts           → Tipos generados por Supabase
 ├── supabase/
-│   ├── config.toml       → Configuración local
-│   └── schema.sql        → Schema de base de datos
-├── docs/                 → Documentación del proyecto
-├── public/               → Assets estáticos
-├── package.json          → Dependencias del proyecto
-├── next.config.js        → Configuración Next.js
-├── tailwind.config.js    → Configuración Tailwind
-└── CLAUDE.md             → Memoria del proyecto
+│   ├── config.toml
+│   └── schema.sql                → 8 tablas, RLS, función get_disponibilidad
+├── design_handoff_agendaia/      → Referencia de diseño hi-fi (NO portar al prod)
+│   └── AgendaIA.html             → Ver con: python -m http.server 8000
+├── tailwind.config.js            → Design tokens mapeados a Tailwind
+└── CLAUDE.md                     → Memoria del proyecto
 ```
 
-## Flujo principal
+## Flujo principal (agente en producción)
 ```
-Paciente → Twilio Webhook → n8n → Supabase (guardar mensaje)
-       → Claude API (procesar) → Generar respuesta
-       → Twilio API (enviar) → Paciente
-       → Google Calendar API (sincronizar turno)
+Paciente → Twilio Webhook → /api/webhooks/twilio
+         → Claude API (tool use) → get_disponibilidad / crear_turno / etc.
+         → Supabase (guardar turno + mensaje)
+         → Google Calendar (crear evento)
+         → Twilio API (TwiML → responder al paciente)
+         → [Fase 2] MercadoPago (cobrar seña) → Resend (confirmar email)
 ```
+
+## Multi-tenancy
+- Cada profesional tiene un registro en tabla `profesionales`
+- Todas las tablas tienen `profesional_id` como FK
+- Row Level Security (RLS) en Supabase: cada profesional solo ve sus datos
+- El agente recibe `profesional_id` desde el webhook de Twilio
+- Auth: Supabase Auth (email/password en MVP, Google OAuth a futuro)
 
 ## Integraciones externas
-| Servicio | Para qué | Docs |
-|----------|----------|------|
-| Twilio | WhatsApp Business API | https://www.twilio.com/docs/whatsapp |
-| Anthropic Claude | Agente conversacional | https://docs.anthropic.com/ |
-| Google Calendar | Sincronización de turnos | https://developers.google.com/calendar |
-| Supabase | Base de datos + Auth | https://supabase.com/docs |
-| MercadoPago | Cobro de señas (fase 2) | https://www.mercadopago.com.ar/developers |
-| Resend | Emails transaccionales | https://resend.com/docs |
+| Servicio | Para qué | Estado |
+|----------|----------|--------|
+| Twilio | WhatsApp Business API | ✅ Sandbox conectado |
+| Claude API | Agente conversacional | ✅ claude-sonnet-4-6 con tool use |
+| Google Calendar | Sincronización de turnos | ✅ OAuth OK · ⚠️ escritura pendiente |
+| Supabase | DB + Auth multi-tenant | ✅ Cloud configurado |
+| MercadoPago | Cobro de señas | 🔜 Fase 2 |
+| Resend | Emails transaccionales | 🔜 Fase 2 |
 
-## Decisiones técnicas importantes
+## Decisiones técnicas
 
 ### Next.js 14 App Router
-Elegí App Router por ser la recomendación actual de Vercel y tener mejor integración con React Server Components.
+App Router + React Server Components para layouts persistentes (sidebar) sin re-render completo. Cada ruta del panel es un page.tsx server component; las partes interactivas son client components.
 
-### Supabase en vez de PostgreSQL raw
-Supabase proporciona Auth, Row Level Security, y APIs auto-generadas que aceleran el desarrollo. Además tiene excelente integración con Next.js.
+### Supabase con RLS
+Multi-tenancy a nivel DB sin lógica extra en la app. Cada query filtra automáticamente por el profesional autenticado.
+
+### Claude Sonnet como agente
+Capacidad de razonamiento real para entender intención, manejar contexto multi-turno y ejecutar tool calls (reservar turnos, consultar disponibilidad, cancelar).
+
+### Sistema de diseño propio (tokens tierra)
+Paleta terracota/arena/hueso con Fraunces serif para números grandes. Design tokens centralizados en `tailwind.config.js` y `globals.css`. Referencia visual en `design_handoff_agendaia/`.
 
 ### n8n para automatizaciones
-En vez de escribir webhooks custom, n8n permite crear flujos visuales de automatización que son más fáciles de mantener y debuguear.
-
-### Twilio para WhatsApp
-Twilio es el proveedor oficial de WhatsApp Business API con mejor documentación y soporte en español.
-
-### Claude Sonnet 4
-Elegí Sonnet (no Haiku) porque necesita capacidad de razonamiento para manejar conversaciones complejas de agenda con contexto.
+Recordatorios, follow-ups y flujos secundarios sin escribir código custom.
