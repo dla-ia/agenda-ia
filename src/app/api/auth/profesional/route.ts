@@ -22,6 +22,9 @@ export async function POST(req: Request) {
     otro:          'profesional independiente',
   };
 
+  // Auto-confirmar el email via Admin API (service role bypasa la verificación)
+  await supabaseAdmin.auth.admin.updateUserById(id, { email_confirm: true });
+
   const { error } = await supabaseAdmin.from('profesionales').insert({
     id,
     nombre,
