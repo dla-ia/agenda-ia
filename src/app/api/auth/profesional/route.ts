@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+// GET — verifica disponibilidad de slug
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const slug = searchParams.get('slug')?.toLowerCase().trim();
+  if (!slug || !/^[a-z0-9-]{3,40}$/.test(slug)) {
+    return NextResponse.json({ available: false, reason: 'formato inválido' });
+  }
+  const { data } = await supabaseAdmin.from('profesionales').select('id').eq('slug', slug).maybeSingle();
+  return NextResponse.json({ available: !data });
+}
+
 // POST — crea el registro en `profesionales` después del signUp en el cliente.
 // El id debe coincidir con auth.uid() para que RLS funcione.
 export async function POST(req: Request) {

@@ -1,8 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 40);
+}
 
 /* ── Step progress ───────────────────────────────────── */
 function StepProgress({ step }: { step: number }) {
@@ -43,12 +54,58 @@ function Step1({ onNext, userId }: { onNext: (data: Step1Data) => void; userId: 
   const [duracion, setDuracion] = useState('50');
   const [horaInicio, setHoraInicio] = useState('09:00');
   const [horaFin, setHoraFin] = useState('20:00');
+  const [slug, setSlug] = useState('');
+  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'ok' | 'taken' | 'invalid'>('idle');
+  const [slugError, setSlugError] = useState('');
   const [saving, setSaving] = useState(false);
+  const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-sugerir slug desde especialidad (solo si el user no lo editó)
+  const slugEdited = useRef(false);
+  useEffect(() => {
+    if (slugEdited.current) return;
+    const suggested = slugify(especialidad);
+    setSlug(suggested);
+    if (suggested) checkSlug(suggested);
+  }, [especialidad]);
+
+  function handleSlugChange(val: string) {
+    slugEdited.current = true;
+    const clean = val.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    setSlug(clean);
+    checkSlug(clean);
+  }
+
+  function checkSlug(value: string) {
+    if (checkTimer.current) clearTimeout(checkTimer.current);
+    if (!value || value.length < 3) {
+      setSlugStatus(value.length > 0 && value.length < 3 ? 'invalid' : 'idle');
+      setSlugError('Mínimo 3 caracteres');
+      return;
+    }
+    if (!/^[a-z0-9-]{3,40}$/.test(value)) {
+      setSlugStatus('invalid');
+      setSlugError('Solo letras, números y guiones');
+      return;
+    }
+    setSlugStatus('checking');
+    checkTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/auth/profesional?slug=${encodeURIComponent(value)}`);
+        const json = await res.json();
+        setSlugStatus(json.available ? 'ok' : 'taken');
+        setSlugError(json.available ? '' : 'Ese slug ya está en uso, elegí otro');
+      } catch {
+        setSlugStatus('idle');
+      }
+    }, 400);
+  }
 
   async function handleNext(e: React.FormEvent) {
     e.preventDefault();
+    if (slugStatus === 'taken' || slugStatus === 'invalid') return;
     setSaving(true);
-    await fetch('/api/auth/profesional', {
+    const res = await fetch('/api/auth/profesional', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -57,11 +114,23 @@ function Step1({ onNext, userId }: { onNext: (data: Step1Data) => void; userId: 
         duracion_sesion_minutos: Number(duracion),
         horario_inicio: horaInicio,
         horario_fin: horaFin,
+        slug: slug || null,
       }),
     });
-    onNext({ especialidad, duracion });
+    const json = await res.json();
+    if (json.error?.includes('slug')) {
+      setSlugStatus('taken');
+      setSlugError('Ese slug ya está en uso, elegí otro');
+      setSaving(false);
+      return;
+    }
+    onNext({ especialidad, duracion, slug });
     setSaving(false);
   }
+
+  const slugOk = slugStatus === 'ok';
+  const slugBad = slugStatus === 'taken' || slugStatus === 'invalid';
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://calendaria.com.ar';
 
   return (
     <form onSubmit={handleNext} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -83,6 +152,45 @@ function Step1({ onNext, userId }: { onNext: (data: Step1Data) => void; userId: 
           onChange={e => setEspecialidad(e.target.value)}
         />
       </label>
+
+      {/* Slug */}
+      <div className="field">
+        <span>Tu link de WhatsApp</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginTop: 4 }}>
+          <span style={{
+            padding: '9px 10px', fontSize: 13, color: 'var(--ink-3)',
+            background: 'var(--bg-3)', border: '1.5px solid var(--line)',
+            borderRight: 'none', borderRadius: '8px 0 0 8px', whiteSpace: 'nowrap',
+          }}>
+            calendaria.com.ar/w/
+          </span>
+          <input
+            className="input"
+            style={{
+              borderRadius: '0 8px 8px 0', flex: 1, minWidth: 0,
+              borderColor: slugOk ? '#4ade80' : slugBad ? '#f87171' : 'var(--line)',
+            }}
+            placeholder="mi-nombre"
+            value={slug}
+            onChange={e => handleSlugChange(e.target.value)}
+            maxLength={40}
+          />
+          <span style={{ marginLeft: 8, fontSize: 16, flexShrink: 0 }}>
+            {slugStatus === 'checking' ? '⏳' : slugOk ? '✅' : slugBad ? '❌' : ''}
+          </span>
+        </div>
+        {slugBad && (
+          <p style={{ fontSize: 12, color: '#ef4444', margin: '4px 0 0' }}>{slugError}</p>
+        )}
+        {slugOk && slug && (
+          <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: '4px 0 0' }}>
+            Tus pacientes van a escribirte desde{' '}
+            <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--terracotta)' }}>
+              {APP_URL}/w/{slug}
+            </span>
+          </p>
+        )}
+      </div>
 
       <label className="field">
         <span>Duración de cada sesión</span>
@@ -106,14 +214,14 @@ function Step1({ onNext, userId }: { onNext: (data: Step1Data) => void; userId: 
         </label>
       </div>
 
-      <button type="submit" className="btn btn-primary" disabled={saving} style={{ marginTop: 8, width: '100%', justifyContent: 'center', padding: '12px 0' }}>
+      <button type="submit" className="btn btn-primary" disabled={saving || slugBad || slugStatus === 'checking'} style={{ marginTop: 8, width: '100%', justifyContent: 'center', padding: '12px 0' }}>
         {saving ? 'Guardando…' : 'Continuar →'}
       </button>
     </form>
   );
 }
 
-interface Step1Data { especialidad: string; duracion: string; }
+interface Step1Data { especialidad: string; duracion: string; slug: string; }
 
 /* ── Step 2: Tu agente ───────────────────────────────── */
 function Step2({ onNext, userId }: { onNext: () => void; userId: string }) {
@@ -219,8 +327,11 @@ function Step2({ onNext, userId }: { onNext: () => void; userId: string }) {
 }
 
 /* ── Step 3: ¡Listo! ─────────────────────────────────── */
-function Step3() {
+function Step3({ slug }: { slug: string }) {
   const router = useRouter();
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://calendaria.com.ar';
+  const waLink = slug ? `${APP_URL}/w/${slug}` : null;
+
   return (
     <div style={{ textAlign: 'center', padding: '16px 0' }}>
       <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
@@ -228,27 +339,40 @@ function Step3() {
         ¡Tu agente está listo!
       </h2>
       <p style={{ fontSize: 15, color: 'var(--ink-2)', maxWidth: 360, margin: '0 auto 32px', lineHeight: 1.65 }}>
-        Ya podés explorar tu panel. El siguiente paso es conectar WhatsApp desde la sección <strong>Agente IA → Integraciones</strong>.
+        Compartí tu link y Aurora empieza a atender a tus pacientes por WhatsApp.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 300, margin: '0 auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 340, margin: '0 auto' }}>
         {[
           { icon: '✅', text: 'Perfil de profesional creado' },
           { icon: '✅', text: 'Agente configurado y activo' },
-          { icon: '⏳', text: 'WhatsApp — pendiente de conectar' },
+          { icon: waLink ? '✅' : '⏳', text: waLink ? `Link: ${waLink}` : 'WhatsApp — sin link asignado' },
           { icon: '⏳', text: 'Google Calendar — pendiente' },
         ].map(item => (
-          <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'var(--ink-2)' }}>
-            <span style={{ fontSize: 16 }}>{item.icon}</span>
-            {item.text}
+          <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink-2)', textAlign: 'left' }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>{item.icon}</span>
+            <span style={{ fontFamily: item.text.startsWith('Link:') ? 'var(--font-mono)' : 'inherit', color: item.text.startsWith('Link:') ? 'var(--terracotta)' : 'inherit', wordBreak: 'break-all' }}>
+              {item.text}
+            </span>
           </div>
         ))}
       </div>
 
+      {waLink && (
+        <button
+          type="button"
+          className="btn"
+          style={{ marginTop: 20, padding: '9px 20px', fontSize: 13, color: 'var(--terracotta)', border: '1.5px solid var(--terracotta)', background: 'transparent' }}
+          onClick={() => navigator.clipboard?.writeText(waLink)}
+        >
+          Copiar link de WhatsApp
+        </button>
+      )}
+
       <button
         className="btn btn-primary"
         onClick={() => router.push('/dashboard')}
-        style={{ marginTop: 36, padding: '13px 32px', fontSize: 15 }}
+        style={{ marginTop: 16, padding: '13px 32px', fontSize: 15, display: 'block', margin: '20px auto 0' }}
       >
         Ir a mi panel →
       </button>
@@ -261,6 +385,7 @@ export default function OnboardingPage() {
   const supabase = createSupabaseBrowser();
   const [step, setStep] = useState(1);
   const [userId, setUserId] = useState('');
+  const [profesionalSlug, setProfesionalSlug] = useState('');
 
   // Obtener userId al montar
   useState(() => {
@@ -285,9 +410,9 @@ export default function OnboardingPage() {
         <StepProgress step={step} />
 
         <div className="card" style={{ padding: '28px 28px' }}>
-          {step === 1 && <Step1 userId={userId} onNext={() => setStep(2)} />}
+          {step === 1 && <Step1 userId={userId} onNext={(data) => { setProfesionalSlug(data.slug); setStep(2); }} />}
           {step === 2 && <Step2 userId={userId} onNext={() => setStep(3)} />}
-          {step === 3 && <Step3 />}
+          {step === 3 && <Step3 slug={profesionalSlug} />}
         </div>
       </div>
     </div>
