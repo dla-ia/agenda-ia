@@ -17,6 +17,8 @@ CREATE TABLE profesionales (
     google_calendar_token JSONB,
     google_calendar_refresh_token TEXT,
     google_calendar_id TEXT,
+    slug VARCHAR(50) UNIQUE,           -- identificador URL amigable (ej: garcia-psico)
+    twilio_number VARCHAR(20),         -- número propio (NULL = usa número compartido de Calendaria)
     twilio_phone_sid TEXT,
     twilio_auth_token TEXT,
     twilio_account_sid TEXT,
