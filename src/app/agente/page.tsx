@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-/* ── Icons inline (stroke-based del handoff) ─────────── */
+/* ── Icons ────────────────────────────────────────────── */
 type IconName = 'phone' | 'calendar' | 'wallet' | 'inbox' | 'shield' | 'flag' | 'clock' | 'users' | 'plus' | 'x' | 'check' | 'moreV' | 'sparkles';
 
 function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
@@ -26,6 +26,71 @@ function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
       {paths[name]}
     </svg>
   );
+}
+
+/* ── State shape ──────────────────────────────────────── */
+interface Config {
+  nombre: string;
+  tono: 'warm' | 'direct' | 'casual';
+  saludo: string;
+  cierre: string;
+  frases: string[];
+  reagendaAutomatica: boolean;
+  confirma24h: boolean;
+  listaEspera: boolean;
+  bufferSesiones: boolean;
+  senaMonto: string;
+  senaVencimiento: string;
+  senaSinPago: boolean;
+}
+
+const DEFAULTS: Config = {
+  nombre: 'Aurora',
+  tono: 'warm',
+  saludo: 'Hola, qué lindo que te animes a dar este paso 🌱 Soy Aurora, la asistente del profesional. ¿Cómo te llamás?',
+  cierre: 'Cualquier duda, estoy por acá. ¡Te espero! 🌿',
+  frases: ['diagnósticos', 'pronósticos', 'consejos médicos', 'promesas de resultado'],
+  reagendaAutomatica: true,
+  confirma24h: true,
+  listaEspera: false,
+  bufferSesiones: true,
+  senaMonto: '8000',
+  senaVencimiento: '2h',
+  senaSinPago: true,
+};
+
+function fromApi(data: Record<string, string>): Config {
+  return {
+    nombre:              data.agente_nombre ?? DEFAULTS.nombre,
+    tono:                (data.agente_tono as Config['tono']) ?? DEFAULTS.tono,
+    saludo:              data.agente_saludo ?? DEFAULTS.saludo,
+    cierre:              data.agente_cierre ?? DEFAULTS.cierre,
+    frases:              data.agente_frases_prohibidas ? JSON.parse(data.agente_frases_prohibidas) : DEFAULTS.frases,
+    reagendaAutomatica:  data.agente_reagenda_automatica !== 'false',
+    confirma24h:         data.agente_confirma_24h !== 'false',
+    listaEspera:         data.agente_lista_espera === 'true',
+    bufferSesiones:      data.agente_buffer_sesiones !== 'false',
+    senaMonto:           data.agente_sena_monto ?? DEFAULTS.senaMonto,
+    senaVencimiento:     data.agente_sena_vencimiento ?? DEFAULTS.senaVencimiento,
+    senaSinPago:         data.agente_sena_sin_pago !== 'false',
+  };
+}
+
+function toApi(c: Config): Record<string, string> {
+  return {
+    agente_nombre:              c.nombre,
+    agente_tono:                c.tono,
+    agente_saludo:              c.saludo,
+    agente_cierre:              c.cierre,
+    agente_frases_prohibidas:   JSON.stringify(c.frases),
+    agente_reagenda_automatica: String(c.reagendaAutomatica),
+    agente_confirma_24h:        String(c.confirma24h),
+    agente_lista_espera:        String(c.listaEspera),
+    agente_buffer_sesiones:     String(c.bufferSesiones),
+    agente_sena_monto:          c.senaMonto,
+    agente_sena_vencimiento:    c.senaVencimiento,
+    agente_sena_sin_pago:       String(c.senaSinPago),
+  };
 }
 
 /* ── Toggle ──────────────────────────────────────────── */
@@ -52,32 +117,35 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
-function ToggleCard({ title, desc, on }: { title: string; desc: string; on: boolean }) {
-  const [val, setVal] = useState(on);
+function ToggleCard({ title, desc, on, onChange }: { title: string; desc: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="card" style={{ padding: 16, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', marginBottom: 3 }}>{title}</div>
         <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.45 }}>{desc}</div>
       </div>
-      <Toggle on={val} onChange={setVal} />
+      <Toggle on={on} onChange={onChange} />
     </div>
   );
 }
 
 /* ── Tab: Personalidad ───────────────────────────────── */
-function TabPersonalidad() {
-  const [nombre, setNombre] = useState('Aurora');
-  const [tono, setTono] = useState('warm');
-  const [saludo, setSaludo] = useState('Hola, qué lindo que te animes a dar este paso 🌱 Soy Aurora, la asistente de la Lic. Fernández. ¿Cómo te llamás?');
-  const [cierre, setCierre] = useState('Cualquier duda, estoy por acá. Te espero el martes 🌿');
-  const [frases, setFrases] = useState(['diagnósticos', 'pronósticos', 'consejos médicos', 'promesas de resultado']);
-
+function TabPersonalidad({ config, set }: { config: Config; set: (f: (c: Config) => Config) => void }) {
   const tonos = [
     { id: 'warm',   label: 'Cálido',   desc: 'Empático, suave' },
     { id: 'direct', label: 'Directo',  desc: 'Eficiente, claro' },
     { id: 'casual', label: 'Casual',   desc: 'Cercano, amable' },
-  ];
+  ] as const;
+
+  const [nuevaFrase, setNuevaFrase] = useState('');
+
+  function addFrase(e: React.KeyboardEvent) {
+    if (e.key !== 'Enter' || !nuevaFrase.trim()) return;
+    e.preventDefault();
+    const f = nuevaFrase.trim();
+    set(c => ({ ...c, frases: c.frases.includes(f) ? c.frases : [...c.frases, f] }));
+    setNuevaFrase('');
+  }
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 22 }}>
@@ -91,7 +159,7 @@ function TabPersonalidad() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <label className="field">
             <span>Nombre del asistente</span>
-            <input className="input" value={nombre} onChange={e => setNombre(e.target.value)} />
+            <input className="input" value={config.nombre} onChange={e => set(c => ({ ...c, nombre: e.target.value }))} />
           </label>
 
           <div className="field">
@@ -100,13 +168,13 @@ function TabPersonalidad() {
               {tonos.map(opt => (
                 <button
                   key={opt.id}
-                  onClick={() => setTono(opt.id)}
+                  onClick={() => set(c => ({ ...c, tono: opt.id }))}
                   className="card"
                   style={{
                     padding: 12, textAlign: 'left', cursor: 'pointer', border: 'none',
-                    borderColor: tono === opt.id ? 'var(--terracotta)' : 'var(--line)',
-                    boxShadow: tono === opt.id ? '0 0 0 3px rgba(194, 106, 74, 0.12)' : 'none',
-                    background: tono === opt.id ? 'rgba(194, 106, 74, 0.04)' : 'var(--surface-2)',
+                    borderColor: config.tono === opt.id ? 'var(--terracotta)' : 'var(--line)',
+                    boxShadow: config.tono === opt.id ? '0 0 0 3px rgba(194,106,74,0.12)' : 'none',
+                    background: config.tono === opt.id ? 'rgba(194,106,74,0.04)' : 'var(--surface-2)',
                     outline: 'none',
                   }}
                 >
@@ -123,14 +191,14 @@ function TabPersonalidad() {
               className="input"
               rows={3}
               style={{ resize: 'vertical', fontFamily: 'inherit' }}
-              value={saludo}
-              onChange={e => setSaludo(e.target.value)}
+              value={config.saludo}
+              onChange={e => set(c => ({ ...c, saludo: e.target.value }))}
             />
           </label>
 
           <label className="field">
             <span>Frase de cierre</span>
-            <input className="input" value={cierre} onChange={e => setCierre(e.target.value)} />
+            <input className="input" value={config.cierre} onChange={e => set(c => ({ ...c, cierre: e.target.value }))} />
           </label>
         </div>
       </div>
@@ -141,7 +209,7 @@ function TabPersonalidad() {
           <p className="eyebrow" style={{ marginBottom: 10 }}>Cómo te ven tus clientes</p>
           <div className="chat-area" style={{ borderRadius: 10, padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div className="chat-bubble chat-out" style={{ maxWidth: '100%', whiteSpace: 'pre-wrap', alignSelf: 'flex-end' }}>
-              {saludo}
+              {config.saludo}
               <div className="chat-meta"><span className="chat-time">14:32</span></div>
             </div>
             <div className="chat-bubble chat-out" style={{ maxWidth: '100%', alignSelf: 'flex-end' }}>
@@ -155,12 +223,12 @@ function TabPersonalidad() {
           <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 500, color: 'var(--ink)', margin: '0 0 10px' }}>
             Frases que evita
           </h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {frases.map(f => (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            {config.frases.map(f => (
               <span key={f} className="tag" style={{ cursor: 'default' }}>
                 {f}
                 <button
-                  onClick={() => setFrases(frases.filter(x => x !== f))}
+                  onClick={() => set(c => ({ ...c, frases: c.frases.filter(x => x !== f) }))}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--ink-3)', display: 'flex', alignItems: 'center' }}
                 >
                   <Icon name="x" size={10} />
@@ -168,6 +236,14 @@ function TabPersonalidad() {
               </span>
             ))}
           </div>
+          <input
+            className="input"
+            placeholder="Agregar frase... (Enter)"
+            value={nuevaFrase}
+            onChange={e => setNuevaFrase(e.target.value)}
+            onKeyDown={addFrase}
+            style={{ fontSize: 12 }}
+          />
         </div>
       </div>
     </div>
@@ -175,7 +251,7 @@ function TabPersonalidad() {
 }
 
 /* ── Tab: Reglas de agenda ───────────────────────────── */
-function TabReglasAgenda() {
+function TabReglasAgenda({ config, set }: { config: Config; set: (f: (c: Config) => Config) => void }) {
   const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
@@ -200,10 +276,30 @@ function TabReglasAgenda() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <ToggleCard title="Reagenda automática"  desc="Mueve turnos sin preguntar si hay disponibilidad la misma semana" on={true} />
-        <ToggleCard title="Confirma 24h antes"   desc="Manda recordatorio y libera el turno si no responden" on={true} />
-        <ToggleCard title="Lista de espera"       desc="Si liberás un turno, lo ofrece a quienes esperan" on={false} />
-        <ToggleCard title="Buffer entre sesiones" desc="Deja 10 minutos automáticamente entre turnos" on={true} />
+        <ToggleCard
+          title="Reagenda automática"
+          desc="Mueve turnos sin preguntar si hay disponibilidad la misma semana"
+          on={config.reagendaAutomatica}
+          onChange={v => set(c => ({ ...c, reagendaAutomatica: v }))}
+        />
+        <ToggleCard
+          title="Confirma 24h antes"
+          desc="Manda recordatorio y libera el turno si no responden"
+          on={config.confirma24h}
+          onChange={v => set(c => ({ ...c, confirma24h: v }))}
+        />
+        <ToggleCard
+          title="Lista de espera"
+          desc="Si liberás un turno, lo ofrece a quienes esperan"
+          on={config.listaEspera}
+          onChange={v => set(c => ({ ...c, listaEspera: v }))}
+        />
+        <ToggleCard
+          title="Buffer entre sesiones"
+          desc="Deja 10 minutos automáticamente entre turnos"
+          on={config.bufferSesiones}
+          onChange={v => set(c => ({ ...c, bufferSesiones: v }))}
+        />
       </div>
     </div>
   );
@@ -227,7 +323,7 @@ function PriceRow({ label, price, duration }: { label: string; price: string; du
   );
 }
 
-function TabPrecios() {
+function TabPrecios({ config, set }: { config: Config; set: (f: (c: Config) => Config) => void }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
       <div className="card" style={{ padding: 22 }}>
@@ -251,18 +347,34 @@ function TabPrecios() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <label className="field">
             <span>Monto de seña</span>
-            <input className="input" defaultValue="$ 8.000" />
+            <input
+              className="input"
+              value={`$ ${config.senaMonto}`}
+              onChange={e => {
+                const raw = e.target.value.replace(/[^\d]/g, '');
+                set(c => ({ ...c, senaMonto: raw }));
+              }}
+            />
           </label>
           <label className="field">
             <span>Vencimiento del link</span>
-            <select className="input" defaultValue="2h">
+            <select
+              className="input"
+              value={config.senaVencimiento}
+              onChange={e => set(c => ({ ...c, senaVencimiento: e.target.value }))}
+            >
               <option value="1h">1 hora</option>
               <option value="2h">2 horas</option>
               <option value="24h">24 horas</option>
               <option value="48h">48 horas</option>
             </select>
           </label>
-          <ToggleCard title="Sin pago, sin reserva" desc="Libera el turno si no se pagó la seña antes del vencimiento" on={true} />
+          <ToggleCard
+            title="Sin pago, sin reserva"
+            desc="Libera el turno si no se pagó la seña antes del vencimiento"
+            on={config.senaSinPago}
+            onChange={v => set(c => ({ ...c, senaSinPago: v }))}
+          />
         </div>
       </div>
     </div>
@@ -302,7 +414,7 @@ function TabIntegraciones() {
   );
 }
 
-/* ── Tab: Cuándo derivarme ───────────────────────────── */
+/* ── Tab: Límites y crisis ───────────────────────────── */
 function LimitRow({ icon, label, desc, required }: { icon: IconName; label: string; desc: string; required?: boolean }) {
   return (
     <div style={{ display: 'flex', gap: 12, padding: 12, background: 'var(--bg-2)', borderRadius: 10, alignItems: 'flex-start' }}>
@@ -312,9 +424,7 @@ function LimitRow({ icon, label, desc, required }: { icon: IconName; label: stri
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', flexWrap: 'wrap' }}>
           {label}
-          {required && (
-            <span className="badge badge-warn" style={{ fontSize: 10 }}>obligatorio</span>
-          )}
+          {required && <span className="badge badge-warn" style={{ fontSize: 10 }}>obligatorio</span>}
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>{desc}</div>
       </div>
@@ -333,14 +443,13 @@ function TabLimites() {
           Tu agente es prudente. Ante estas señales deja de responder y te avisa para que tomes la posta.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <LimitRow icon="shield" label="Mención de crisis o autolesión"    desc="Comparte línea de ayuda y te notifica de inmediato" required />
-          <LimitRow icon="flag"   label="Pedidos de descuento o tarifa social" desc="Te consulta antes de aceptar" />
-          <LimitRow icon="clock"  label="Horarios fuera de lo configurado"  desc="Te pregunta antes de bloquear o comprometerse" />
-          <LimitRow icon="users"  label="Consultas clínicas específicas"    desc="Te deriva la pregunta sin responder" required />
+          <LimitRow icon="shield" label="Mención de crisis o autolesión"       desc="Comparte línea de ayuda y te notifica de inmediato" required />
+          <LimitRow icon="flag"   label="Pedidos de descuento o tarifa social"  desc="Te consulta antes de aceptar" />
+          <LimitRow icon="clock"  label="Horarios fuera de lo configurado"      desc="Te pregunta antes de bloquear o comprometerse" />
+          <LimitRow icon="users"  label="Consultas clínicas específicas"        desc="Te deriva la pregunta sin responder" required />
         </div>
       </div>
 
-      {/* Protocolo de crisis */}
       <div className="card" style={{ padding: 22, background: 'linear-gradient(180deg, var(--surface) 0%, var(--bg-2) 100%)' }}>
         <div style={{ color: 'var(--terracotta)', marginBottom: 10 }}>
           <Icon name="shield" size={20} />
@@ -382,12 +491,39 @@ type TabId = typeof TABS[number]['id'];
 
 export default function AgentePage() {
   const [tab, setTab] = useState<TabId>('personalidad');
-  const [guardando, setGuardando] = useState(false);
+  const [config, setConfig] = useState<Config>(DEFAULTS);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
-  function handleGuardar() {
-    setGuardando(true);
-    setTimeout(() => setGuardando(false), 1200);
+  useEffect(() => {
+    fetch('/api/data/agente')
+      .then(r => r.json())
+      .then(data => { setConfig(fromApi(data)); setCargando(false); })
+      .catch(() => setCargando(false));
+  }, []);
+
+  async function handleGuardar() {
+    setGuardando('saving');
+    try {
+      const res = await fetch('/api/data/agente', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(toApi(config)),
+      });
+      if (!res.ok) throw new Error();
+      setGuardando('saved');
+      setTimeout(() => setGuardando('idle'), 1800);
+    } catch {
+      setGuardando('error');
+      setTimeout(() => setGuardando('idle'), 2500);
+    }
   }
+
+  function set(updater: (c: Config) => Config) {
+    setConfig(prev => updater(prev));
+  }
+
+  const tabProps = { config, set };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -414,13 +550,13 @@ export default function AgentePage() {
             <button
               className="btn btn-primary btn-sm"
               onClick={handleGuardar}
-              style={{ minWidth: 80 }}
+              disabled={guardando === 'saving' || cargando}
+              style={{ minWidth: 90 }}
             >
-              {guardando ? (
-                <><Icon name="check" size={13} /> Guardado</>
-              ) : (
-                'Guardar'
-              )}
+              {guardando === 'saving' && 'Guardando…'}
+              {guardando === 'saved'  && <><Icon name="check" size={13} /> Guardado</>}
+              {guardando === 'error'  && 'Error al guardar'}
+              {guardando === 'idle'   && 'Guardar'}
             </button>
           </div>
         </div>
@@ -451,13 +587,19 @@ export default function AgentePage() {
         </div>
       </div>
 
-      {/* Contenido del tab */}
+      {/* Contenido */}
       <div className="scroll-styled" style={{ flex: 1, overflowY: 'auto', padding: '24px 28px 32px' }}>
-        {tab === 'personalidad'  && <TabPersonalidad />}
-        {tab === 'agenda'        && <TabReglasAgenda />}
-        {tab === 'precios'       && <TabPrecios />}
-        {tab === 'integraciones' && <TabIntegraciones />}
-        {tab === 'limites'       && <TabLimites />}
+        {cargando ? (
+          <div style={{ color: 'var(--ink-3)', fontSize: 14 }}>Cargando configuración…</div>
+        ) : (
+          <>
+            {tab === 'personalidad'  && <TabPersonalidad  {...tabProps} />}
+            {tab === 'agenda'        && <TabReglasAgenda  {...tabProps} />}
+            {tab === 'precios'       && <TabPrecios        {...tabProps} />}
+            {tab === 'integraciones' && <TabIntegraciones />}
+            {tab === 'limites'       && <TabLimites />}
+          </>
+        )}
       </div>
     </div>
   );
