@@ -3,14 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 
 /* ── Constants ───────────────────────────────────────── */
-const HOUR_PX   = 72;   // pixels per hour
+const HOUR_PX   = 72;
 const START_H   = 8;
 const END_H     = 20;
 const HOURS     = Array.from({ length: END_H - START_H }, (_, i) => START_H + i);
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
-const AR_OFFSET = 3 * 60 * 60 * 1000; // UTC-3
+const AR_OFFSET = 3 * 60 * 60 * 1000;
 
-/* ── Timezone helpers (Argentina UTC-3, no DST) ──────── */
+/* ── Timezone helpers ────────────────────────────────── */
 function toAR(utcIso: string): Date {
   return new Date(new Date(utcIso).getTime() - AR_OFFSET);
 }
@@ -76,9 +76,7 @@ const STATUS: Record<string, { bg: string; border: string; text: string }> = {
 const fallbackStatus = STATUS.pendiente;
 
 /* ── Detail modal ────────────────────────────────────── */
-function TurnoModal({
-  turno, onClose, onUpdate,
-}: {
+function TurnoModal({ turno, onClose, onUpdate }: {
   turno: Turno;
   onClose: () => void;
   onUpdate: (id: string, estado: string) => Promise<void>;
@@ -148,16 +146,16 @@ function TurnoModal({
 }
 
 /* ── Nuevo turno modal ───────────────────────────────── */
-function NuevoTurnoModal({
-  onClose, onCreate,
-}: {
+function NuevoTurnoModal({ onClose, onCreate, initialDate, initialHora }: {
   onClose: () => void;
   onCreate: (turno: Turno) => void;
+  initialDate?: string;
+  initialHora?: string;
 }) {
   const hoy = new Date().toISOString().slice(0, 10);
   const [nombre, setNombre]       = useState('');
-  const [fecha, setFecha]         = useState(hoy);
-  const [hora, setHora]           = useState('09:00');
+  const [fecha, setFecha]         = useState(initialDate ?? hoy);
+  const [hora, setHora]           = useState(initialHora ?? '09:00');
   const [duracion, setDuracion]   = useState('50');
   const [notas, setNotas]         = useState('');
   const [saving, setSaving]       = useState(false);
@@ -263,7 +261,11 @@ function NuevoTurnoModal({
             <textarea className="input" rows={2} style={{ resize: 'vertical', fontFamily: 'inherit', fontSize: 13 }} value={notas} onChange={e => setNotas(e.target.value)} />
           </label>
 
-          {errorMsg && <p style={{ fontSize: 12, color: '#ef4444', margin: 0 }}>{errorMsg}</p>}
+          {errorMsg && (
+            <p style={{ fontSize: 12, color: '#ef4444', margin: 0, padding: '8px 12px', background: 'rgba(239,68,68,0.08)', borderRadius: 6, border: '1px solid rgba(239,68,68,0.2)' }}>
+              {errorMsg}
+            </p>
+          )}
 
           <button type="submit" className="btn btn-primary" disabled={saving} style={{ width: '100%', justifyContent: 'center', padding: '11px 0', marginTop: 4 }}>
             {saving ? 'Creando turno…' : 'Crear turno'}
@@ -277,10 +279,11 @@ function NuevoTurnoModal({
 /* ── Page ────────────────────────────────────────────── */
 export default function AgendaPage() {
   const [weekStart, setWeekStart] = useState(() => getWeekStart());
-  const [turnos, setTurnos] = useState<Turno[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [selected, setSelected] = useState<Turno | null>(null);
+  const [turnos, setTurnos]       = useState<Turno[]>([]);
+  const [cargando, setCargando]   = useState(true);
+  const [selected, setSelected]   = useState<Turno | null>(null);
   const [nuevoOpen, setNuevoOpen] = useState(false);
+  const [nuevoInit, setNuevoInit] = useState<{ date: string; hora: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   async function updateTurno(id: string, estado: string) {
@@ -296,11 +299,25 @@ export default function AgendaPage() {
     setTurnos(prev => [...prev, turno].sort((a, b) => a.fecha_hora.localeCompare(b.fecha_hora)));
   }
 
-  // Scroll to 8am on mount
+  function handleColumnClick(e: React.MouseEvent<HTMLDivElement>, day: Date) {
+    // Si el click fue sobre un turno (button), ignorar
+    if ((e.target as HTMLElement).closest('button')) return;
+    const rect  = e.currentTarget.getBoundingClientRect();
+    const offsetY = e.clientY - rect.top;
+    const rawHour = START_H + offsetY / HOUR_PX;
+    const hour    = Math.floor(rawHour);
+    const minutes = Math.round(((rawHour % 1) * 60) / 30) * 30;
+    const h = minutes === 60 ? hour + 1 : hour;
+    const m = minutes === 60 ? 0 : minutes;
+    if (h < START_H || h >= END_H) return;
+    const dateStr = localDayStr(day);
+    const horaStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    setNuevoInit({ date: dateStr, hora: horaStr });
+    setNuevoOpen(true);
+  }
+
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 0; // 8am is the start
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, []);
 
   useEffect(() => {
@@ -336,32 +353,13 @@ export default function AgendaPage() {
             </h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {cargando && (
-              <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>Cargando…</span>
-            )}
-            <button
-              className="btn btn-sm"
-              onClick={() => setWeekStart(getWeekStart())}
-            >
-              Hoy
-            </button>
+            {cargando && <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>Cargando…</span>}
+            <button className="btn btn-sm" onClick={() => setWeekStart(getWeekStart())}>Hoy</button>
             <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-              <button
-                className="btn btn-ghost btn-sm"
-                style={{ borderRadius: 0, borderRight: '1px solid var(--line)', paddingInline: 12 }}
-                onClick={() => setWeekStart(d => addDays(d, -7))}
-              >
-                ←
-              </button>
-              <button
-                className="btn btn-ghost btn-sm"
-                style={{ borderRadius: 0, paddingInline: 12 }}
-                onClick={() => setWeekStart(d => addDays(d, 7))}
-              >
-                →
-              </button>
+              <button className="btn btn-ghost btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--line)', paddingInline: 12 }} onClick={() => setWeekStart(d => addDays(d, -7))}>←</button>
+              <button className="btn btn-ghost btn-sm" style={{ borderRadius: 0, paddingInline: 12 }} onClick={() => setWeekStart(d => addDays(d, 7))}>→</button>
             </div>
-            <button className="btn btn-primary btn-sm" onClick={() => setNuevoOpen(true)}>+ Turno</button>
+            <button className="btn btn-primary btn-sm" onClick={() => { setNuevoInit(null); setNuevoOpen(true); }}>+ Turno</button>
           </div>
         </div>
       </div>
@@ -379,14 +377,7 @@ export default function AgendaPage() {
                 <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--ink-3)', textTransform: 'uppercase', marginBottom: 4 }}>
                   {DAY_NAMES[i]}
                 </div>
-                <div style={{
-                  width: 34, height: 34, margin: '0 auto',
-                  borderRadius: '50%',
-                  background: isToday ? 'var(--terracotta)' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500,
-                  color: isToday ? '#FFF8F0' : 'var(--ink)',
-                }}>
+                <div style={{ width: 34, height: 34, margin: '0 auto', borderRadius: '50%', background: isToday ? 'var(--terracotta)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500, color: isToday ? '#FFF8F0' : 'var(--ink)' }}>
                   {day.getDate()}
                 </div>
               </div>
@@ -416,25 +407,27 @@ export default function AgendaPage() {
               return (
                 <div
                   key={dayIdx}
+                  onClick={e => handleColumnClick(e, day)}
                   style={{
                     borderLeft: '1px solid var(--line)',
                     position: 'relative',
                     height: HOUR_PX * HOURS.length,
                     background: isToday ? 'rgba(194,106,74,0.025)' : 'transparent',
+                    cursor: 'crosshair',
                   }}
                 >
                   {/* Hour lines */}
                   {HOURS.map(h => (
-                    <div key={h} style={{ position: 'absolute', top: (h - START_H) * HOUR_PX, left: 0, right: 0, borderTop: '1px solid var(--line)', opacity: 0.45 }} />
+                    <div key={h} style={{ position: 'absolute', top: (h - START_H) * HOUR_PX, left: 0, right: 0, borderTop: '1px solid var(--line)', opacity: 0.45, pointerEvents: 'none' }} />
                   ))}
                   {/* Half-hour lines */}
                   {HOURS.map(h => (
-                    <div key={`${h}.5`} style={{ position: 'absolute', top: (h - START_H) * HOUR_PX + HOUR_PX / 2, left: 0, right: 0, borderTop: '1px dashed var(--line)', opacity: 0.25 }} />
+                    <div key={`${h}.5`} style={{ position: 'absolute', top: (h - START_H) * HOUR_PX + HOUR_PX / 2, left: 0, right: 0, borderTop: '1px dashed var(--line)', opacity: 0.25, pointerEvents: 'none' }} />
                   ))}
 
                   {/* Current time line */}
                   {isToday && (() => {
-                    const now = new Date();
+                    const now    = new Date();
                     const nowTop = (now.getHours() - START_H) * HOUR_PX + (now.getMinutes() / 60) * HOUR_PX;
                     if (nowTop < 0 || nowTop > HOUR_PX * HOURS.length) return null;
                     return (
@@ -453,7 +446,7 @@ export default function AgendaPage() {
                     return (
                       <button
                         key={t.id}
-                        onClick={() => setSelected(t)}
+                        onClick={e => { e.stopPropagation(); setSelected(t); }}
                         style={{
                           position: 'absolute',
                           top: top + 1,
@@ -503,7 +496,12 @@ export default function AgendaPage() {
         />
       )}
       {nuevoOpen && (
-        <NuevoTurnoModal onClose={() => setNuevoOpen(false)} onCreate={addTurno} />
+        <NuevoTurnoModal
+          onClose={() => { setNuevoOpen(false); setNuevoInit(null); }}
+          onCreate={addTurno}
+          initialDate={nuevoInit?.date}
+          initialHora={nuevoInit?.hora}
+        />
       )}
     </div>
   );

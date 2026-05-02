@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, PROFESIONAL_ID } from '@/lib/supabase-admin';
+import { supabaseAdmin, getProfesionalId } from '@/lib/supabase-admin';
 
 function normalizarTelefono(tel: string): string {
   let clean = tel.replace(/[\s\-\(\)]/g, '');
@@ -11,7 +11,32 @@ function normalizarTelefono(tel: string): string {
   return clean;
 }
 
+export async function GET(req: Request) {
+  const profesionalId = await getProfesionalId();
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+
+  if (id) {
+    const [{ data: paciente }, { data: turnos }, { data: conversacion }] = await Promise.all([
+      supabaseAdmin.from('pacientes').select('*').eq('id', id).single(),
+      supabaseAdmin.from('turnos').select('*').eq('paciente_id', id).order('fecha_hora', { ascending: false }).limit(20),
+      supabaseAdmin.from('conversaciones').select('*, mensajes(*)').eq('paciente_id', id).order('ultimo_mensaje_at', { ascending: false }).limit(1).single(),
+    ]);
+    return NextResponse.json({ paciente, turnos: turnos || [], conversacion });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('pacientes')
+    .select('*, conversaciones(ultimo_mensaje, ultimo_mensaje_at), turnos(estado, fecha_hora)')
+    .eq('profesional_id', profesionalId)
+    .order('created_at', { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
+}
+
 export async function POST(req: Request) {
+  const profesionalId = await getProfesionalId();
   const { nombre, telefono, mensajeInicial } = await req.json();
   if (!nombre || !telefono || !mensajeInicial) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
@@ -19,25 +44,23 @@ export async function POST(req: Request) {
 
   const telefonoNorm = normalizarTelefono(telefono);
 
-  // Buscar o crear paciente
   let { data: paciente } = await supabaseAdmin
     .from('pacientes')
     .select('id')
-    .eq('profesional_id', PROFESIONAL_ID)
+    .eq('profesional_id', profesionalId)
     .eq('telefono', telefonoNorm)
     .maybeSingle();
 
   if (!paciente) {
     const { data, error } = await supabaseAdmin
       .from('pacientes')
-      .insert({ profesional_id: PROFESIONAL_ID, nombre, telefono: telefonoNorm })
+      .insert({ profesional_id: profesionalId, nombre, telefono: telefonoNorm })
       .select('id')
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     paciente = data;
   }
 
-  // Enviar WhatsApp via Twilio REST
   const sid   = process.env.TWILIO_ACCOUNT_SID!;
   const token = process.env.TWILIO_AUTH_TOKEN!;
   const from  = process.env.TWILIO_PHONE_NUMBER ?? 'whatsapp:+14155238886';
@@ -64,11 +87,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No se pudo enviar el WhatsApp', detalle: err }, { status: 502 });
   }
 
-  // Crear conversación y guardar mensaje saliente
   const { data: conv } = await supabaseAdmin
     .from('conversaciones')
     .insert({
-      profesional_id: PROFESIONAL_ID,
+      profesional_id: profesionalId,
       paciente_id: paciente!.id,
       telefono: telefonoNorm,
       estado: 'activa',
@@ -89,25 +111,20 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, paciente });
 }
 
-export async function GET(req: Request) {
+export async function DELETE(req: Request) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 });
 
-  if (id) {
-    const [{ data: paciente }, { data: turnos }, { data: conversacion }] = await Promise.all([
-      supabaseAdmin.from('pacientes').select('*').eq('id', id).single(),
-      supabaseAdmin.from('turnos').select('*').eq('paciente_id', id).order('fecha_hora', { ascending: false }).limit(10),
-      supabaseAdmin.from('conversaciones').select('*, mensajes(*)').eq('paciente_id', id).order('ultimo_mensaje_at', { ascending: false }).limit(1).single(),
-    ]);
-    return NextResponse.json({ paciente, turnos: turnos || [], conversacion });
-  }
+  // Cancelar turnos futuros pendientes/confirmados antes de eliminar
+  await supabaseAdmin
+    .from('turnos')
+    .update({ estado: 'cancelado' })
+    .eq('paciente_id', id)
+    .in('estado', ['pendiente', 'confirmado'])
+    .gte('fecha_hora', new Date().toISOString());
 
-  const { data, error } = await supabaseAdmin
-    .from('pacientes')
-    .select('*, conversaciones(ultimo_mensaje, ultimo_mensaje_at), turnos(estado, fecha_hora)')
-    .eq('profesional_id', PROFESIONAL_ID)
-    .order('created_at', { ascending: false });
-
+  const { error } = await supabaseAdmin.from('pacientes').delete().eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  return NextResponse.json({ ok: true });
 }

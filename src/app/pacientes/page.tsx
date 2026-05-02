@@ -55,6 +55,19 @@ export default function PacientesPage() {
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+
+  async function eliminarPaciente() {
+    if (!seleccionado) return;
+    setEliminando(true);
+    await fetch(`/api/data/pacientes?id=${seleccionado}`, { method: 'DELETE' });
+    setPacientes(prev => prev.filter(p => p.id !== seleccionado));
+    setSeleccionado(null);
+    setDetalle(null);
+    setConfirmarEliminar(false);
+    setEliminando(false);
+  }
 
   // Modal agregar paciente
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -213,7 +226,29 @@ export default function PacientesPage() {
                   <a href={`https://wa.me/${detalle.paciente.telefono.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm">
                     WhatsApp
                   </a>
-                  <button className="btn btn-primary btn-sm">Reservar turno</button>
+                  {confirmarEliminar ? (
+                    <>
+                      <button className="btn btn-sm" style={{ fontSize: 12 }} onClick={() => setConfirmarEliminar(false)} disabled={eliminando}>
+                        Cancelar
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        style={{ fontSize: 12, background: '#B86A6A', color: '#fff', borderColor: '#B86A6A' }}
+                        onClick={eliminarPaciente}
+                        disabled={eliminando}
+                      >
+                        {eliminando ? 'Eliminando…' : '¿Eliminar?'}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="btn btn-sm"
+                      style={{ fontSize: 12, color: '#B86A6A', borderColor: 'rgba(184,106,106,0.35)' }}
+                      onClick={() => setConfirmarEliminar(true)}
+                    >
+                      Eliminar
+                    </button>
+                  )}
                 </div>
               </div>
 
