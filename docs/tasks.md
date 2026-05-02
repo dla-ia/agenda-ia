@@ -8,9 +8,9 @@
 ## 🟡 Fase 1 — En progreso (próximas sesiones)
 
 ### Panel del profesional
-- [ ] `/agenda`: botón "+ Turno" funcional (modal para crear turno manualmente)
-- [ ] `/agenda`: acciones del modal (cancelar turno, marcar completado) conectadas a Supabase
-- [ ] `/agente` tab "Reglas de agenda": editar horarios por día (actualmente muestra 09:00-19:00 fijo)
+- [x] `/agenda`: botón "+ Turno" funcional (modal para crear turno manualmente)
+- [x] `/agenda`: acciones del modal (cancelar turno, marcar completado) conectadas a Supabase
+- [x] `/agente` tab "Reglas de agenda": editar horarios por día con toggle + inputs de hora inline
 - [x] Onboarding: asignar `slug` al profesional cuando se registra — campo con auto-sugerencia, validación en tiempo real y preview del link
 
 ### Auth y onboarding
@@ -38,11 +38,25 @@
 ---
 
 ## 🟡 Fase 3 — Pagos y recordatorios
-- [ ] MercadoPago: generar link de seña al crear turno
-- [ ] Recordatorios automáticos (n8n): 24hs y 2hs antes del turno
-- [ ] Resend: email de confirmación de turno con link de seña
+- [ ] MercadoPago: generar link de seña al crear turno (requiere MERCADOPAGO_ACCESS_TOKEN)
+- [x] Endpoint `/api/webhooks/n8n` para recordatorios — n8n llama con `turno_id` + `tipo: 24h|2h`, envía WhatsApp vía Twilio
+- [ ] Configurar workflow en n8n: cron 24h y 2h antes del turno → POST al endpoint
+- [ ] Resend: email de confirmación de turno con link de seña (requiere RESEND_API_KEY)
 
 ---
+
+## 🟢 Completadas — Sesión 03/05/2026 (noche)
+- [x] Brand system completo: SVGs en `public/brand/`, componentes `Isotype` / `Wordmark` / `Lockup`, logos reemplazados en sidebar, landing, auth y onboarding
+- [x] `src/app/layout.tsx`: migrado de `<link>` Google Fonts a `next/font/google` (Fraunces + Inter + JetBrains Mono como CSS vars)
+- [x] `src/app/icon.tsx`: app icon generado con `ImageResponse` (isotipo blanco sobre fondo terracota)
+- [x] Manifiesto agregado al hero de landing: "Tu trabajo es atender. El nuestro, agendar."
+- [x] `/agenda`: modal "+ Turno" funcional — autocomplete de pacientes, fecha/hora, duración, notas, conversión AR→UTC
+- [x] `/agenda`: cancelar y marcar completado conectados a Supabase con optimistic update
+- [x] `/agente` API GET: retorna `_horario_inicio`, `_horario_fin`, `_dias_laborables` desde tabla `profesionales`
+- [x] `/agente` API POST: sincroniza `agente_horarios` JSON de vuelta a `profesionales.horario_inicio/fin/dias_laborables`
+- [x] `/agente` tab "Reglas": Toggle por día + inputs de hora inline, se persiste con "Guardar"
+- [x] `/api/webhooks/n8n`: endpoint para recordatorios — n8n llama con `turno_id` + `tipo: 24h|2h`, envía WhatsApp vía Twilio, validado por `x-webhook-secret`
+- [x] `N8N_WEBHOOK_SECRET` agregado a `.env.local`
 
 ## 🟢 Completadas — Sesión 02/05/2026 (noche)
 - [x] Modelo de negocio WhatsApp definido: 1 número compartido + slug por profesional (escalable, $15/mes fijo)

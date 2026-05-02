@@ -29,6 +29,28 @@ function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
 }
 
 /* ── State shape ──────────────────────────────────────── */
+type HorarioDia = { activo: boolean; inicio: string; fin: string };
+type HorariosSemana = Record<string, HorarioDia>;
+
+const DIAS_CONFIG = [
+  { key: 'lunes',     label: 'Lunes' },
+  { key: 'martes',    label: 'Martes' },
+  { key: 'miercoles', label: 'Miércoles' },
+  { key: 'jueves',    label: 'Jueves' },
+  { key: 'viernes',   label: 'Viernes' },
+  { key: 'sabado',    label: 'Sábado' },
+];
+
+const DIA_NUM: Record<string, number> = {
+  lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6,
+};
+
+function defaultHorarios(inicio = '09:00', fin = '19:00', diasActivos = [1,2,3,4,5]): HorariosSemana {
+  return Object.fromEntries(
+    DIAS_CONFIG.map(d => [d.key, { activo: diasActivos.includes(DIA_NUM[d.key]), inicio, fin }])
+  );
+}
+
 interface Config {
   nombre: string;
   tono: 'warm' | 'direct' | 'casual';
@@ -42,6 +64,7 @@ interface Config {
   senaMonto: string;
   senaVencimiento: string;
   senaSinPago: boolean;
+  horarios: HorariosSemana;
 }
 
 const DEFAULTS: Config = {
@@ -57,9 +80,17 @@ const DEFAULTS: Config = {
   senaMonto: '8000',
   senaVencimiento: '2h',
   senaSinPago: true,
+  horarios: defaultHorarios(),
 };
 
 function fromApi(data: Record<string, string>): Config {
+  let horarios = DEFAULTS.horarios;
+  if (data.agente_horarios) {
+    try { horarios = JSON.parse(data.agente_horarios); } catch {}
+  } else if (data._horario_inicio) {
+    const dias = data._dias_laborables ? JSON.parse(data._dias_laborables) : [1,2,3,4,5];
+    horarios = defaultHorarios(data._horario_inicio, data._horario_fin ?? '19:00', dias);
+  }
   return {
     nombre:              data.agente_nombre ?? DEFAULTS.nombre,
     tono:                (data.agente_tono as Config['tono']) ?? DEFAULTS.tono,
@@ -73,6 +104,7 @@ function fromApi(data: Record<string, string>): Config {
     senaMonto:           data.agente_sena_monto ?? DEFAULTS.senaMonto,
     senaVencimiento:     data.agente_sena_vencimiento ?? DEFAULTS.senaVencimiento,
     senaSinPago:         data.agente_sena_sin_pago !== 'false',
+    horarios,
   };
 }
 
@@ -90,6 +122,7 @@ function toApi(c: Config): Record<string, string> {
     agente_sena_monto:          c.senaMonto,
     agente_sena_vencimiento:    c.senaVencimiento,
     agente_sena_sin_pago:       String(c.senaSinPago),
+    agente_horarios:            JSON.stringify(c.horarios),
   };
 }
 
@@ -252,27 +285,51 @@ function TabPersonalidad({ config, set }: { config: Config; set: (f: (c: Config)
 
 /* ── Tab: Reglas de agenda ───────────────────────────── */
 function TabReglasAgenda({ config, set }: { config: Config; set: (f: (c: Config) => Config) => void }) {
-  const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+  function setHorario(key: string, patch: Partial<HorarioDia>) {
+    set(c => ({ ...c, horarios: { ...c.horarios, [key]: { ...c.horarios[key], ...patch } } }));
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
       <div className="card" style={{ padding: 22 }}>
         <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500, color: 'var(--ink)', margin: '0 0 14px', letterSpacing: '-0.01em' }}>
           Disponibilidad
         </h3>
-        {dias.map((d, i) => (
-          <div
-            key={d}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '10px 0',
-              borderBottom: i < dias.length - 1 ? '1px solid var(--line)' : 'none',
-            }}
-          >
-            <span style={{ fontSize: 13.5, fontWeight: 450, color: 'var(--ink)' }}>{d}</span>
-            <span style={{ fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}>09:00 – 19:00</span>
-            <button className="btn btn-ghost btn-sm">Editar</button>
-          </div>
-        ))}
+        {DIAS_CONFIG.map((d, i) => {
+          const h = config.horarios[d.key] ?? { activo: false, inicio: '09:00', fin: '19:00' };
+          return (
+            <div
+              key={d.key}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 0',
+                borderBottom: i < DIAS_CONFIG.length - 1 ? '1px solid var(--line)' : 'none',
+                opacity: h.activo ? 1 : 0.45,
+                transition: 'opacity 0.15s ease',
+              }}
+            >
+              <Toggle on={h.activo} onChange={v => setHorario(d.key, { activo: v })} />
+              <span style={{ fontSize: 13.5, fontWeight: 450, color: 'var(--ink)', minWidth: 80 }}>{d.label}</span>
+              <input
+                type="time"
+                className="input"
+                value={h.inicio}
+                onChange={e => setHorario(d.key, { inicio: e.target.value })}
+                disabled={!h.activo}
+                style={{ width: 90, fontSize: 12.5, padding: '4px 6px', fontFamily: 'var(--font-mono)', cursor: h.activo ? 'default' : 'not-allowed' }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>–</span>
+              <input
+                type="time"
+                className="input"
+                value={h.fin}
+                onChange={e => setHorario(d.key, { fin: e.target.value })}
+                disabled={!h.activo}
+                style={{ width: 90, fontSize: 12.5, padding: '4px 6px', fontFamily: 'var(--font-mono)', cursor: h.activo ? 'default' : 'not-allowed' }}
+              />
+            </div>
+          );
+        })}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
