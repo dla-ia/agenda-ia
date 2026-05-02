@@ -76,32 +76,41 @@ const STATUS: Record<string, { bg: string; border: string; text: string }> = {
 const fallbackStatus = STATUS.pendiente;
 
 /* ── Detail modal ────────────────────────────────────── */
-function TurnoModal({ turno, onClose }: { turno: Turno; onClose: () => void }) {
+function TurnoModal({
+  turno, onClose, onUpdate,
+}: {
+  turno: Turno;
+  onClose: () => void;
+  onUpdate: (id: string, estado: string) => Promise<void>;
+}) {
+  const [updating, setUpdating] = useState<string | null>(null);
   const color = STATUS[turno.estado] ?? fallbackStatus;
+  const yaCompletado = turno.estado === 'completado';
+  const yaCancelado  = turno.estado === 'cancelado';
+
+  async function handleUpdate(estado: string) {
+    setUpdating(estado);
+    await onUpdate(turno.id, estado);
+    setUpdating(null);
+    onClose();
+  }
+
   return (
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(44,36,29,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, backdropFilter: 'blur(3px)' }}
       onClick={onClose}
     >
-      <div
-        className="card"
-        style={{ width: 360, padding: 26, background: 'var(--surface)' }}
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="card" style={{ width: 360, padding: 26, background: 'var(--surface)' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18 }}>
           <div>
             <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500, color: 'var(--ink)', margin: '0 0 4px', letterSpacing: '-0.01em' }}>
               {turno.paciente_nombre}
             </h3>
-            <span
-              style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: color.text, background: color.bg, border: `1px solid ${color.border}`, borderRadius: 6, padding: '2px 8px', display: 'inline-block' }}
-            >
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: color.text, background: color.bg, border: `1px solid ${color.border}`, borderRadius: 6, padding: '2px 8px', display: 'inline-block' }}>
               {turno.estado.replace('_', ' ')}
             </span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 18, padding: 2, lineHeight: 1 }}>
-            ×
-          </button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 18, padding: 2, lineHeight: 1 }}>×</button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -118,11 +127,148 @@ function TurnoModal({ turno, onClose }: { turno: Turno; onClose: () => void }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-sm" style={{ flex: 1 }}>Cancelar turno</button>
-          <button className="btn btn-primary btn-sm" style={{ flex: 1 }}>
-            {turno.estado === 'completado' ? '✓ Completado' : 'Marcar completado'}
+          <button
+            className="btn btn-sm" style={{ flex: 1, opacity: yaCancelado ? 0.4 : 1 }}
+            disabled={yaCancelado || updating !== null}
+            onClick={() => handleUpdate('cancelado')}
+          >
+            {updating === 'cancelado' ? 'Cancelando…' : yaCancelado ? '✗ Cancelado' : 'Cancelar turno'}
+          </button>
+          <button
+            className="btn btn-primary btn-sm" style={{ flex: 1, opacity: yaCompletado ? 0.6 : 1 }}
+            disabled={yaCompletado || updating !== null}
+            onClick={() => handleUpdate('completado')}
+          >
+            {updating === 'completado' ? 'Guardando…' : yaCompletado ? '✓ Completado' : 'Marcar completado'}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Nuevo turno modal ───────────────────────────────── */
+function NuevoTurnoModal({
+  onClose, onCreate,
+}: {
+  onClose: () => void;
+  onCreate: (turno: Turno) => void;
+}) {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const [nombre, setNombre]       = useState('');
+  const [fecha, setFecha]         = useState(hoy);
+  const [hora, setHora]           = useState('09:00');
+  const [duracion, setDuracion]   = useState('50');
+  const [notas, setNotas]         = useState('');
+  const [saving, setSaving]       = useState(false);
+  const [errorMsg, setErrorMsg]   = useState('');
+  const [pacientes, setPacientes] = useState<{ id: string; nombre: string }[]>([]);
+  const [sugerencias, setSugerencias] = useState<{ id: string; nombre: string }[]>([]);
+
+  useEffect(() => {
+    fetch('/api/data/pacientes')
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setPacientes(data); })
+      .catch(() => {});
+  }, []);
+
+  function handleNombre(val: string) {
+    setNombre(val);
+    setSugerencias(val.length >= 2
+      ? pacientes.filter(p => p.nombre.toLowerCase().includes(val.toLowerCase())).slice(0, 5)
+      : []);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!nombre.trim()) { setErrorMsg('Ingresá el nombre del paciente'); return; }
+    setSaving(true);
+    setErrorMsg('');
+    const fecha_hora = new Date(`${fecha}T${hora}:00-03:00`).toISOString();
+    const res = await fetch('/api/data/agenda', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre_paciente: nombre, fecha_hora, duracion_minutos: Number(duracion), notas }),
+    });
+    const json = await res.json();
+    if (!res.ok) { setErrorMsg(json.error ?? 'Error al crear turno'); setSaving(false); return; }
+    onCreate(json.turno);
+    onClose();
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(44,36,29,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, backdropFilter: 'blur(3px)' }}
+      onClick={onClose}
+    >
+      <div className="card" style={{ width: 400, padding: 26, background: 'var(--surface)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
+            Nuevo turno
+          </h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 18, padding: 2, lineHeight: 1 }}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ position: 'relative' }}>
+            <label className="field">
+              <span>Paciente</span>
+              <input
+                className="input" autoFocus required
+                placeholder="Nombre del paciente"
+                value={nombre}
+                onChange={e => handleNombre(e.target.value)}
+                onBlur={() => setTimeout(() => setSugerencias([]), 150)}
+              />
+            </label>
+            {sugerencias.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 8, zIndex: 10, overflow: 'hidden', marginTop: 2 }}>
+                {sugerencias.map(p => (
+                  <button
+                    key={p.id} type="button"
+                    style={{ display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)' }}
+                    onMouseDown={() => { setNombre(p.nombre); setSugerencias([]); }}
+                  >
+                    {p.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <label className="field">
+              <span>Fecha</span>
+              <input className="input" type="date" required value={fecha} onChange={e => setFecha(e.target.value)} />
+            </label>
+            <label className="field">
+              <span>Hora</span>
+              <input className="input" type="time" required value={hora} onChange={e => setHora(e.target.value)} />
+            </label>
+          </div>
+
+          <label className="field">
+            <span>Duración</span>
+            <select className="input" value={duracion} onChange={e => setDuracion(e.target.value)}>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="50">50 min</option>
+              <option value="60">60 min</option>
+              <option value="90">90 min</option>
+            </select>
+          </label>
+
+          <label className="field">
+            <span>Notas <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>(opcional)</span></span>
+            <textarea className="input" rows={2} style={{ resize: 'vertical', fontFamily: 'inherit', fontSize: 13 }} value={notas} onChange={e => setNotas(e.target.value)} />
+          </label>
+
+          {errorMsg && <p style={{ fontSize: 12, color: '#ef4444', margin: 0 }}>{errorMsg}</p>}
+
+          <button type="submit" className="btn btn-primary" disabled={saving} style={{ width: '100%', justifyContent: 'center', padding: '11px 0', marginTop: 4 }}>
+            {saving ? 'Creando turno…' : 'Crear turno'}
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -134,7 +280,21 @@ export default function AgendaPage() {
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [cargando, setCargando] = useState(true);
   const [selected, setSelected] = useState<Turno | null>(null);
+  const [nuevoOpen, setNuevoOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  async function updateTurno(id: string, estado: string) {
+    await fetch('/api/data/agenda', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, estado }),
+    });
+    setTurnos(prev => prev.map(t => t.id === id ? { ...t, estado } : t));
+  }
+
+  function addTurno(turno: Turno) {
+    setTurnos(prev => [...prev, turno].sort((a, b) => a.fecha_hora.localeCompare(b.fecha_hora)));
+  }
 
   // Scroll to 8am on mount
   useEffect(() => {
@@ -201,7 +361,7 @@ export default function AgendaPage() {
                 →
               </button>
             </div>
-            <button className="btn btn-primary btn-sm">+ Turno</button>
+            <button className="btn btn-primary btn-sm" onClick={() => setNuevoOpen(true)}>+ Turno</button>
           </div>
         </div>
       </div>
@@ -332,8 +492,19 @@ export default function AgendaPage() {
         </div>
       </div>
 
-      {/* ── Detail modal ── */}
-      {selected && <TurnoModal turno={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <TurnoModal
+          turno={selected}
+          onClose={() => setSelected(null)}
+          onUpdate={async (id, estado) => {
+            await updateTurno(id, estado);
+            setSelected(prev => prev ? { ...prev, estado } : null);
+          }}
+        />
+      )}
+      {nuevoOpen && (
+        <NuevoTurnoModal onClose={() => setNuevoOpen(false)} onCreate={addTurno} />
+      )}
     </div>
   );
 }
