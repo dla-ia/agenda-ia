@@ -14,7 +14,7 @@
 - [x] Onboarding: asignar `slug` al profesional cuando se registra — campo con auto-sugerencia, validación en tiempo real y preview del link
 
 ### Auth y onboarding
-- [ ] Activar auth obligatorio en producción: eliminar `NEXT_PUBLIC_PROFESIONAL_ID` de Vercel cuando haya usuarios reales
+- [x] Activar auth obligatorio en producción: `NEXT_PUBLIC_PROFESIONAL_ID` eliminado de Vercel + cuenta auth creada para profesional de dev
 - [ ] Probar flujo completo registro → onboarding → dashboard con cuenta nueva
 
 ### Dominio calendaria.com.ar ✅ COMPLETADO
@@ -24,10 +24,10 @@
 - [x] Agregar URI en Google Cloud OAuth: `https://calendaria.com.ar/api/auth/google/callback`
 - [x] Actualizar webhook Twilio: `https://calendaria.com.ar/api/webhooks/twilio`
 
-### MCP servers (requieren reiniciar Claude Code)
-- [ ] Activar Supabase MCP (`https://mcp.supabase.com/mcp`) — ya en config, falta autenticar
-- [ ] Activar Vercel MCP (`https://mcp.vercel.com`) — ya en config, falta autenticar
-- [ ] Activar Twilio MCP (`@twilio-alpha/mcp`) — configurado en `.claude/settings.local.json`, requiere reinicio
+### MCP servers
+- [x] Supabase MCP activo — autenticado vía OAuth esta sesión
+- [ ] Vercel MCP (`https://mcp.vercel.com`) — pendiente autenticar
+- [ ] Twilio MCP (`@twilio-alpha/mcp`) — requiere reinicio de Claude Code
 
 ---
 
@@ -39,11 +39,28 @@
 
 ## 🟡 Fase 3 — Pagos y recordatorios
 - [ ] MercadoPago: generar link de seña al crear turno (requiere MERCADOPAGO_ACCESS_TOKEN)
-- [x] Endpoint `/api/webhooks/n8n` para recordatorios — n8n llama con `turno_id` + `tipo: 24h|2h`, envía WhatsApp vía Twilio
-- [ ] Configurar workflow en n8n: cron 24h y 2h antes del turno → POST al endpoint
-- [ ] Resend: email de confirmación de turno con link de seña (requiere RESEND_API_KEY)
+- [x] Endpoint `/api/webhooks/n8n` para recordatorios manuales (turno_id + tipo)
+- [x] GitHub Actions cron cada hora → `/api/cron/recordatorios` → WhatsApp 24h y 2h antes
+- [x] Migración Supabase: `recordatorio_24h_enviado` y `recordatorio_2h_enviado` en `turnos`
+- [x] `CRON_SECRET` en Vercel y en GitHub Actions secrets (`APP_URL` también)
+- [ ] Resend: email de confirmación de turno (paquete instalado, falta RESEND_API_KEY)
 
 ---
+
+## 🟢 Completadas — Sesión 02/05/2026 (día siguiente)
+- [x] `flujo.md`: diagrama completo del sistema (Mermaid + Markdown importable en XMind)
+- [x] GitHub Actions cron recordatorios: `.github/workflows/recordatorios.yml` + `/api/cron/recordatorios`
+- [x] Supabase MCP autenticado directamente desde Claude Code
+- [x] Auth real activado: `NEXT_PUBLIC_PROFESIONAL_ID` eliminado de Vercel
+- [x] Cuenta Supabase Auth creada para profesional de dev (misma UUID → datos intactos)
+- [x] `gh` CLI instalado y autenticado via Windows Credential Manager
+- [x] GitHub secrets `CRON_SECRET` y `APP_URL` seteados directo desde Claude Code
+- [x] `CRON_SECRET` agregado a Vercel via CLI
+- [x] `/pacientes`: botón "Eliminar" con confirmación inline (cancela turnos futuros)
+- [x] `/agenda`: click en columna de día → modal pre-cargado con fecha/hora (cursor crosshair)
+- [x] `/agenda`: validación de solapamiento en POST — error con nombre del paciente conflictivo
+- [x] API routes migradas de `PROFESIONAL_ID` a `getProfesionalId()` (agenda + pacientes)
+- [x] `docs/correccion.md`: sistema de registro de correcciones con protocolo `corrección:`
 
 ## 🟢 Completadas — Sesión 03/05/2026 (noche)
 - [x] Brand system completo: SVGs en `public/brand/`, componentes `Isotype` / `Wordmark` / `Lockup`, logos reemplazados en sidebar, landing, auth y onboarding

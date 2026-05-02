@@ -68,6 +68,14 @@ cd design_handoff_agendaia && python -m http.server 8000  → ver diseños en lo
 @docs/architecture.md
 @docs/tasks.md
 @docs/context.md
+@docs/correccion.md
+
+## Protocolo de correcciones
+Cuando Diego escribe `corrección: [descripción]`, Claude:
+1. Evalúa tipo (UI / UX / Lógica / Datos / Perf / Seguridad)
+2. Corrige directamente sin preguntas si el problema es claro
+3. Registra una fila en `docs/correccion.md` con fecha y archivos afectados
+4. Actualiza `docs/tasks.md` si corresponde
 
 ## Estado actual
 Ver @docs/tasks.md para el progreso detallado.
