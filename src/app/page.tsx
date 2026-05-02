@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Lockup } from '@/components/brand/Lockup';
 
 /* ── Datos ─────────────────────────────────────────────── */
 
@@ -153,17 +154,7 @@ function Navbar() {
     >
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'linear-gradient(135deg, #C26A4A 0%, #A95838 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFF8F0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <polyline points="12 7 12 12 15 15" />
-            </svg>
-          </div>
-          <span style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-            Calendaria
-          </span>
-        </div>
+        <Lockup size={17} gap={8} />
 
         {/* Links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -244,6 +235,19 @@ export default function LandingPage() {
       {/* ── HERO ─────────────────────────────────────────── */}
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '80px 24px 60px', display: 'flex', alignItems: 'center', gap: 60, flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 420px' }}>
+          <p
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontWeight: 500,
+              fontSize: 'clamp(13px, 1.4vw, 15px)',
+              letterSpacing: '0.01em',
+              color: 'var(--terracotta)',
+              margin: '0 0 16px',
+              lineHeight: 1,
+            }}
+          >
+            Tu trabajo es atender. El nuestro, agendar.
+          </p>
           <span
             className="badge badge-ai"
             style={{ marginBottom: 20, display: 'inline-flex' }}

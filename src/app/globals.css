@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fuentes: Fraunces (serif) + Inter (sans) + JetBrains Mono */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 /* ===== Design tokens (CSS variables) ===== */
 :root {
   --bg:        #F6F1EA;

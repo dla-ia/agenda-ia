@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
+import { Lockup } from '@/components/brand/Lockup';
 
 const navigation = [
   {
@@ -66,29 +67,7 @@ const navigation = [
 ];
 
 function CalendariaLogo() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div
-        className="flex items-center justify-center rounded-lg flex-shrink-0"
-        style={{
-          width: 32,
-          height: 32,
-          background: 'linear-gradient(135deg, #C26A4A 0%, #A95838 100%)',
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFF8F0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="9" />
-          <polyline points="12 7 12 12 15 15" />
-        </svg>
-      </div>
-      <span
-        className="font-serif font-semibold text-[17px] tracking-tight"
-        style={{ color: 'var(--ink)', fontFamily: 'var(--font-serif)' }}
-      >
-        Calendaria
-      </span>
-    </div>
-  );
+  return <Lockup size={17} gap={8} />;
 }
 
 export default function DashboardLayout({
