@@ -38,12 +38,13 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const profesionalId = await getProfesionalId();
-  const { nombre, telefono, mensajeInicial } = await req.json();
+  const { nombre, telefono, email, mensajeInicial } = await req.json();
   if (!nombre || !telefono || !mensajeInicial) {
     return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
   }
 
   const telefonoNorm = normalizarTelefono(telefono);
+  const emailTrim = email?.trim() || null;
 
   let { data: paciente } = await supabaseAdmin
     .from('pacientes')
@@ -53,13 +54,18 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (!paciente) {
+    const insertData: Record<string, unknown> = { profesional_id: profesionalId, nombre, telefono: telefonoNorm };
+    if (emailTrim) insertData.email = emailTrim;
     const { data, error } = await supabaseAdmin
       .from('pacientes')
-      .insert({ profesional_id: profesionalId, nombre, telefono: telefonoNorm })
+      .insert(insertData)
       .select('id')
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     paciente = data;
+  } else if (emailTrim) {
+    // Actualizar email si se proporcionó y el paciente ya existe
+    await supabaseAdmin.from('pacientes').update({ email: emailTrim }).eq('id', paciente.id);
   }
 
   const sid   = process.env.TWILIO_ACCOUNT_SID!;

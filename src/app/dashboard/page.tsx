@@ -46,7 +46,7 @@ async function fetchMetrics(profesionalId: string) {
   const inicioSemana = startOf('week', ahora).toISOString();
   const inicioMes = startOf('month', new Date()).toISOString();
 
-  const [{ count: turnosSemana }, { count: totalPacientes }, { data: pagosData }, { count: noShows }, { count: turnosTotalesMes }] = await Promise.all([
+  const [{ count: turnosSemana }, { count: totalPacientes }, { data: pagosData }, { count: noShows }, { count: turnosTotalesMes }, { count: turnosConfirmadosMes }] = await Promise.all([
     supabaseAdmin.from('turnos').select('*', { count: 'exact', head: true })
       .eq('profesional_id', profesionalId)
       .gte('fecha_hora', inicioSemana)
@@ -63,16 +63,47 @@ async function fetchMetrics(profesionalId: string) {
       .eq('profesional_id', profesionalId)
       .gte('fecha_hora', inicioMes)
       .not('estado', 'eq', 'cancelado'),
+    supabaseAdmin.from('turnos').select('*', { count: 'exact', head: true })
+      .eq('profesional_id', profesionalId)
+      .gte('fecha_hora', inicioMes)
+      .in('estado', ['confirmado', 'completado']),
   ]);
 
   const senas = (pagosData || []).reduce((s, p) => s + (p.monto || 0), 0);
   const noShowRate = turnosTotalesMes ? Math.round(((noShows || 0) / turnosTotalesMes) * 100) : 0;
+  const tasaConfirmacion = turnosTotalesMes ? Math.round(((turnosConfirmadosMes || 0) / turnosTotalesMes) * 100) : 0;
 
   return {
     turnosSemana: turnosSemana || 0,
     senas,
     noShowRate,
     totalPacientes: totalPacientes || 0,
+    tasaConfirmacion,
+  };
+}
+
+async function fetchProximoTurno(profesionalId: string) {
+  const ahora = new Date();
+  const finDia = new Date(ahora); finDia.setHours(23, 59, 59, 999);
+
+  const { data } = await supabaseAdmin
+    .from('turnos')
+    .select('id, fecha_hora, pacientes(nombre)')
+    .eq('profesional_id', profesionalId)
+    .in('estado', ['confirmado', 'pendiente'])
+    .gte('fecha_hora', ahora.toISOString())
+    .lte('fecha_hora', finDia.toISOString())
+    .order('fecha_hora', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    nombre: (data as any).pacientes?.nombre ?? 'Paciente',
+    hora: new Date(data.fecha_hora).toLocaleTimeString('es-AR', {
+      hour: '2-digit', minute: '2-digit',
+      timeZone: 'America/Argentina/Buenos_Aires',
+    }),
   };
 }
 
@@ -107,10 +138,11 @@ async function fetchActividad(profesionalId: string) {
 
 export default async function DashboardPage() {
   const profesionalId = await getProfesionalId();
-  const [metrics, turnosHoy, actividad] = await Promise.all([
+  const [metrics, turnosHoy, actividad, proximoTurno] = await Promise.all([
     fetchMetrics(profesionalId),
     fetchTurnosHoy(profesionalId),
     fetchActividad(profesionalId),
+    fetchProximoTurno(profesionalId),
   ]);
 
   const señasFormateadas = metrics.senas >= 1000
@@ -118,11 +150,15 @@ export default async function DashboardPage() {
     : `$${metrics.senas}`;
 
   const metricCards = [
-    { label: 'Turnos esta semana', value: String(metrics.turnosSemana), delta: null, sub: 'activos' },
-    { label: 'Señas cobradas',     value: señasFormateadas,             delta: null, sub: 'este mes' },
-    { label: 'Tasa de no-show',    value: `${metrics.noShowRate}%`,     delta: null, sub: 'este mes' },
-    { label: 'Total pacientes',    value: String(metrics.totalPacientes), delta: null, sub: 'registrados' },
+    { label: 'Turnos esta semana', value: String(metrics.turnosSemana), sub: 'activos' },
+    { label: 'Señas cobradas',     value: señasFormateadas,             sub: 'este mes' },
+    { label: 'Tasa de confirmación', value: `${metrics.tasaConfirmacion}%`, sub: 'este mes' },
+    { label: 'Total pacientes',    value: String(metrics.totalPacientes), sub: 'registrados' },
   ];
+
+  const proximoLabel = proximoTurno
+    ? `${proximoTurno.nombre.split(' ')[0]} — ${proximoTurno.hora}hs`
+    : null;
 
   return (
     <div className="p-6 lg:p-8">
@@ -138,7 +174,15 @@ export default async function DashboardPage() {
             Aurora está activa y atendiendo consultas
           </p>
         </div>
-        <a href="/agente" className="btn btn-primary">Configurar Aurora</a>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          {proximoLabel && (
+            <div style={{ fontSize: 13, color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--terracotta)', display: 'inline-block', flexShrink: 0 }} />
+              <span>Próximo turno: <strong>{proximoLabel}</strong></span>
+            </div>
+          )}
+          <a href="/agente" className="btn btn-primary">Configurar Aurora</a>
+        </div>
       </div>
 
       {/* Metric cards */}

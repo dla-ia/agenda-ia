@@ -85,13 +85,37 @@ export default function PacientesPage() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [formNombre, setFormNombre] = useState('');
   const [formTelefono, setFormTelefono] = useState('');
+  const [formEmail, setFormEmail] = useState('');
   const [formMensaje, setFormMensaje] = useState(MSG_DEFAULT);
   const [enviando, setEnviando] = useState(false);
   const [errorModal, setErrorModal] = useState('');
 
   function abrirModal() {
-    setFormNombre(''); setFormTelefono(''); setFormMensaje(MSG_DEFAULT); setErrorModal('');
+    setFormNombre(''); setFormTelefono(''); setFormEmail(''); setFormMensaje(MSG_DEFAULT); setErrorModal('');
     setModalAbierto(true);
+  }
+
+  function exportarCSV() {
+    if (!pacientes.length) return;
+    const encabezado = ['Nombre', 'Teléfono', 'Email', 'Fecha alta', 'Turnos totales'].join(',');
+    const filas = pacientes.map(p => {
+      const turnos = Array.isArray(p.turnos) ? p.turnos.length : 0;
+      return [
+        `"${(p.nombre ?? '').replace(/"/g, '""')}"`,
+        `"${p.telefono ?? ''}"`,
+        `"${p.email ?? ''}"`,
+        `"${p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR') : ''}"`,
+        turnos,
+      ].join(',');
+    });
+    const csv = [encabezado, ...filas].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pacientes-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function agregarPaciente(e: React.FormEvent) {
@@ -102,7 +126,7 @@ export default function PacientesPage() {
     const res = await fetch('/api/data/pacientes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: formNombre.trim(), telefono: formTelefono.trim(), mensajeInicial: mensajeFinal }),
+      body: JSON.stringify({ nombre: formNombre.trim(), telefono: formTelefono.trim(), email: formEmail.trim() || undefined, mensajeInicial: mensajeFinal }),
     });
     const data = await res.json();
     setEnviando(false);
@@ -151,6 +175,11 @@ export default function PacientesPage() {
               <span style={{ fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
                 {pacientes.length}
               </span>
+              {pacientes.length > 0 && (
+                <button onClick={exportarCSV} className="btn btn-sm" style={{ fontSize: 12, padding: '4px 10px' }} title="Exportar CSV">
+                  ↓ CSV
+                </button>
+              )}
               <button onClick={abrirModal} className="btn btn-primary btn-sm" style={{ fontSize: 12, padding: '4px 10px' }}>
                 + Paciente
               </button>
@@ -397,6 +426,19 @@ export default function PacientesPage() {
                 type="tel"
               />
               <span style={{ fontSize: 11, color: 'var(--ink-3)' }}>Argentina: podés escribir el número sin código de país</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, color: 'var(--ink-2)', fontWeight: 500 }}>
+                Email <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>(opcional — para confirmaciones)</span>
+              </label>
+              <input
+                className="input"
+                placeholder="paciente@email.com"
+                value={formEmail}
+                onChange={e => setFormEmail(e.target.value)}
+                type="email"
+              />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

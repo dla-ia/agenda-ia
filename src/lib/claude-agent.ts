@@ -31,6 +31,10 @@ interface AgenteConfig {
   reagenda_automatica: boolean;
   confirma_24h: boolean;
   buffer_sesiones: boolean;
+  nombreProfesional?: string;
+  horarioInicio?: string;
+  horarioFin?: string;
+  diasLaborables?: number[];
 }
 
 const CONFIG_DEFAULTS: AgenteConfig = {
@@ -46,15 +50,20 @@ const CONFIG_DEFAULTS: AgenteConfig = {
 
 async function loadAgenteConfig(profesionalId: string): Promise<AgenteConfig> {
   try {
-    const { data } = await supabaseAdmin
-      .from('configuraciones')
-      .select('clave, valor')
-      .eq('profesional_id', profesionalId);
-
-    if (!data?.length) return CONFIG_DEFAULTS;
+    const [{ data: configRows }, { data: prof }] = await Promise.all([
+      supabaseAdmin
+        .from('configuraciones')
+        .select('clave, valor')
+        .eq('profesional_id', profesionalId),
+      supabaseAdmin
+        .from('profesionales')
+        .select('nombre, horario_inicio, horario_fin, dias_laborables')
+        .eq('id', profesionalId)
+        .single(),
+    ]);
 
     const raw: Record<string, string> = {};
-    for (const row of data) if (row.valor !== null) raw[row.clave] = row.valor;
+    for (const row of configRows ?? []) if (row.valor !== null) raw[row.clave] = row.valor;
 
     return {
       nombre:              raw.agente_nombre              ?? CONFIG_DEFAULTS.nombre,
@@ -65,6 +74,10 @@ async function loadAgenteConfig(profesionalId: string): Promise<AgenteConfig> {
       reagenda_automatica: raw.agente_reagenda_automatica !== 'false',
       confirma_24h:        raw.agente_confirma_24h        !== 'false',
       buffer_sesiones:     raw.agente_buffer_sesiones     !== 'false',
+      nombreProfesional:   prof?.nombre ?? undefined,
+      horarioInicio:       prof?.horario_inicio ?? '09:00',
+      horarioFin:          prof?.horario_fin    ?? '20:00',
+      diasLaborables:      prof?.dias_laborables ?? [1, 2, 3, 4, 5],
     };
   } catch {
     return CONFIG_DEFAULTS;
@@ -81,6 +94,20 @@ function getSystemPrompt(cfg: AgenteConfig): string {
   const ahora = new Date(Date.now() - 3 * 60 * 60 * 1000);
   const hoy = `${DIAS_SEMANA[ahora.getUTCDay()]} ${ahora.getUTCDate()} de ${MESES[ahora.getUTCMonth()]} de ${ahora.getUTCFullYear()}`;
   const horaActual = `${String(ahora.getUTCHours()).padStart(2, '0')}:${String(ahora.getUTCMinutes()).padStart(2, '0')}`;
+  const horaActualNum = ahora.getUTCHours() * 60 + ahora.getUTCMinutes();
+
+  // Evaluar si estamos fuera de horario laboral
+  const [hIni, mIni] = (cfg.horarioInicio ?? '09:00').split(':').map(Number);
+  const [hFin, mFin] = (cfg.horarioFin    ?? '20:00').split(':').map(Number);
+  const minutosInicio = hIni * 60 + (mIni || 0);
+  const minutosFin    = hFin * 60 + (mFin || 0);
+  const diasLaborables = cfg.diasLaborables ?? [1, 2, 3, 4, 5];
+  const esHorarioLaboral =
+    diasLaborables.includes(ahora.getUTCDay()) &&
+    horaActualNum >= minutosInicio &&
+    horaActualNum < minutosFin;
+
+  const nombreProf = cfg.nombreProfesional ? `de ${cfg.nombreProfesional}` : 'del profesional';
 
   const toneDesc: Record<string, string> = {
     warm:   'Tono cálido y empático. Usá palabras amables, mostrá comprensión.',
@@ -92,10 +119,18 @@ function getSystemPrompt(cfg: AgenteConfig): string {
     ? `- Nunca usés estas palabras o frases: ${cfg.frases_prohibidas.join(', ')}.`
     : '';
 
-  return `Sos ${cfg.nombre}, el asistente virtual del profesional. Tu trabajo es gestionar la agenda de turnos.
+  const diasNombres = diasLaborables.map(d => DIAS_SEMANA[d] ?? '').filter(Boolean).join(', ');
+  const horarioInfo = `${cfg.horarioInicio ?? '09:00'} a ${cfg.horarioFin ?? '20:00'} (${diasNombres})`;
+
+  const avisoFueraHorario = !esHorarioLaboral
+    ? `\n⚠️ CONTEXTO: Ahora son las ${horaActual}hs. El consultorio está FUERA DE HORARIO. Podés recibir el mensaje y confirmar el turno para otro día, pero informá amablemente que el turno se confirmará cuando el consultorio abra (${horarioInfo}).`
+    : '';
+
+  return `Sos ${cfg.nombre}, el asistente virtual ${nombreProf}. Tu trabajo es gestionar la agenda de turnos.
 
 ## Fecha y hora actual (Argentina)
 Hoy es ${hoy}, ${horaActual}hs. Usá esta información para interpretar fechas relativas ("el jueves", "mañana", "la semana que viene", etc.).
+Horario de atención del consultorio: ${horarioInfo}.${avisoFueraHorario}
 
 ## Personalidad
 ${toneDesc[cfg.tono] ?? toneDesc.warm}
@@ -110,7 +145,8 @@ Al confirmar un turno o despedirte: "${cfg.cierre}"
 ## Reglas importantes
 1. **Alcance**: Solo gestioná agenda. No des consejos de salud, diagnósticos ni pronósticos.
 ${frasesProhibidas ? `2. ${frasesProhibidas}` : ''}
-3. **Emergencias**: Si el mensaje sugiere una crisis emocional, respondé: "Entiendo que estás pasando un momento difícil. Es importante que hables directamente con el profesional. Líneas de ayuda: 135 (CABA) o 0800-345-1435." Luego dejá de responder y notificá al profesional.
+3. **Crisis o emergencia**: Si el mensaje sugiere autolesión, ideación suicida o una crisis emocional grave, respondé EXACTAMENTE: "Entiendo que estás pasando un momento muy difícil. Por favor comunicate directamente con el profesional o llamá a las líneas de ayuda: 135 (CABA, gratuito) · 0800-345-1435 (todo el país, gratuito). Estoy disponible para agenda cuando estés listo/a." No sigas el flujo normal de agenda luego de este mensaje.
+4. **Fuera de horario**: Si alguien escribe fuera del horario de atención (${horarioInfo}), podés igualmente registrar su turno para un día y hora futuros dentro del horario. Informá que el consultorio retomará actividad en el próximo día hábil.
 
 ## Flujo para reservar un turno — MUY IMPORTANTE
 

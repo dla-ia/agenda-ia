@@ -146,11 +146,12 @@ function TurnoModal({ turno, onClose, onUpdate }: {
 }
 
 /* ── Nuevo turno modal ───────────────────────────────── */
-function NuevoTurnoModal({ onClose, onCreate, initialDate, initialHora }: {
+function NuevoTurnoModal({ onClose, onCreate, initialDate, initialHora, turnosDia }: {
   onClose: () => void;
   onCreate: (turno: Turno) => void;
   initialDate?: string;
   initialHora?: string;
+  turnosDia?: Turno[];
 }) {
   const hoy = new Date().toISOString().slice(0, 10);
   const [nombre, setNombre]       = useState('');
@@ -163,6 +164,9 @@ function NuevoTurnoModal({ onClose, onCreate, initialDate, initialHora }: {
   const [mpLink, setMpLink]         = useState('');
   const [pacientes, setPacientes]   = useState<{ id: string; nombre: string }[]>([]);
   const [sugerencias, setSugerencias] = useState<{ id: string; nombre: string }[]>([]);
+
+  // Turnos del día seleccionado (para mostrar en footer)
+  const turnosDelDia = (turnosDia ?? []).filter(t => arDayStr(t.fecha_hora) === fecha && t.estado !== 'cancelado');
 
   useEffect(() => {
     fetch('/api/data/pacientes')
@@ -299,6 +303,35 @@ function NuevoTurnoModal({ onClose, onCreate, initialDate, initialHora }: {
             </button>
           )}
         </form>
+
+        {/* Resumen de turnos del día seleccionado */}
+        {turnosDelDia.length > 0 && (
+          <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--bg-2)', borderRadius: 8, border: '1px solid var(--line)' }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-3)', margin: '0 0 8px' }}>
+              Turnos del día seleccionado
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {turnosDelDia
+                .sort((a, b) => a.fecha_hora.localeCompare(b.fecha_hora))
+                .map(t => {
+                  const color = STATUS[t.estado] ?? fallbackStatus;
+                  return (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', width: 42, flexShrink: 0 }}>
+                        {formatHora(t.fecha_hora)}
+                      </span>
+                      <span style={{ flex: 1, color: 'var(--ink)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {t.paciente_nombre}
+                      </span>
+                      <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: color.bg, color: color.text, border: `1px solid ${color.border}`, flexShrink: 0 }}>
+                        {t.duracion_minutos}′
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -545,6 +578,7 @@ export default function AgendaPage() {
           onCreate={addTurno}
           initialDate={nuevoInit?.date}
           initialHora={nuevoInit?.hora}
+          turnosDia={turnos}
         />
       )}
     </div>
