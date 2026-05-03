@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   // Fetch turno + paciente + profesional
   const { data: turno, error } = await supabaseAdmin
     .from('turnos')
-    .select('id, fecha_hora, duracion_minutos, estado, pacientes(nombre, telefono), profesionales(nombre_profesional, slug)')
+    .select('id, fecha_hora, duracion_minutos, estado, pacientes(nombre, telefono), profesionales(nombre, slug)')
     .eq('id', turno_id)
     .single();
 
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
   }
 
   const fechaFormateada = formatArgentineDate(turno.fecha_hora);
-  const nombreProf = profesional?.nombre_profesional ?? 'el profesional';
+  const nombreProf = profesional?.nombre ?? 'el profesional';
 
   const mensaje =
     tipo === '24h'
@@ -69,7 +69,8 @@ export async function POST(req: Request) {
 
   const twilioSid   = process.env.TWILIO_ACCOUNT_SID!;
   const twilioToken = process.env.TWILIO_AUTH_TOKEN!;
-  const fromNumber  = process.env.TWILIO_PHONE_NUMBER!;
+  const rawFrom     = process.env.TWILIO_PHONE_NUMBER ?? 'whatsapp:+14155238886';
+  const fromNumber  = rawFrom.startsWith('whatsapp:') ? rawFrom : `whatsapp:${rawFrom}`;
 
   const twilioRes = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,

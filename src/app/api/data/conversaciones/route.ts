@@ -6,6 +6,16 @@ export async function GET(req: Request) {
   const id = searchParams.get('id'); // si viene id, devuelve mensajes de esa conversación
 
   if (id) {
+    const profesionalId = await getProfesionalId();
+    // Verificar que la conversación pertenece al profesional antes de devolver mensajes
+    const { data: conv } = await supabaseAdmin
+      .from('conversaciones')
+      .select('id')
+      .eq('id', id)
+      .eq('profesional_id', profesionalId)
+      .maybeSingle();
+    if (!conv) return NextResponse.json({ error: 'Conversación no encontrada' }, { status: 404 });
+
     const { data, error } = await supabaseAdmin
       .from('mensajes')
       .select('*')

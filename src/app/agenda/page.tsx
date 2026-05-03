@@ -316,8 +316,13 @@ export default function AgendaPage() {
     setNuevoOpen(true);
   }
 
+  // Al montar, hacer scroll al horario actual (o al inicio del día laboral)
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    if (!scrollRef.current) return;
+    const now = new Date();
+    const currentHour = now.getHours();
+    const targetHour = Math.max(START_H, Math.min(currentHour - 1, END_H - 3));
+    scrollRef.current.scrollTop = (targetHour - START_H) * HOUR_PX;
   }, []);
 
   useEffect(() => {

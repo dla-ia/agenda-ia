@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import { Lockup } from '@/components/brand/Lockup';
 
@@ -329,7 +328,6 @@ function Step2({ onNext, userId }: { onNext: () => void; userId: string }) {
 
 /* ── Step 3: ¡Listo! ─────────────────────────────────── */
 function Step3({ slug }: { slug: string }) {
-  const router = useRouter();
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://calendaria.com.ar';
   const waLink = slug ? `${APP_URL}/w/${slug}` : null;
 
@@ -372,7 +370,7 @@ function Step3({ slug }: { slug: string }) {
 
       <button
         className="btn btn-primary"
-        onClick={() => router.push('/dashboard')}
+        onClick={() => { window.location.href = '/dashboard'; }}
         style={{ marginTop: 16, padding: '13px 32px', fontSize: 15, display: 'block', margin: '20px auto 0' }}
       >
         Ir a mi panel →

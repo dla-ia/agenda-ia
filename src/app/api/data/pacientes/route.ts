@@ -18,10 +18,11 @@ export async function GET(req: Request) {
 
   if (id) {
     const [{ data: paciente }, { data: turnos }, { data: conversacion }] = await Promise.all([
-      supabaseAdmin.from('pacientes').select('*').eq('id', id).single(),
-      supabaseAdmin.from('turnos').select('*').eq('paciente_id', id).order('fecha_hora', { ascending: false }).limit(20),
-      supabaseAdmin.from('conversaciones').select('*, mensajes(*)').eq('paciente_id', id).order('ultimo_mensaje_at', { ascending: false }).limit(1).single(),
+      supabaseAdmin.from('pacientes').select('*').eq('id', id).eq('profesional_id', profesionalId).single(),
+      supabaseAdmin.from('turnos').select('*').eq('paciente_id', id).eq('profesional_id', profesionalId).order('fecha_hora', { ascending: false }).limit(20),
+      supabaseAdmin.from('conversaciones').select('*, mensajes(*)').eq('paciente_id', id).eq('profesional_id', profesionalId).order('ultimo_mensaje_at', { ascending: false }).limit(1).single(),
     ]);
+    if (!paciente) return NextResponse.json({ error: 'Paciente no encontrado' }, { status: 404 });
     return NextResponse.json({ paciente, turnos: turnos || [], conversacion });
   }
 
@@ -112,6 +113,7 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const profesionalId = await getProfesionalId();
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 });
@@ -121,10 +123,15 @@ export async function DELETE(req: Request) {
     .from('turnos')
     .update({ estado: 'cancelado' })
     .eq('paciente_id', id)
+    .eq('profesional_id', profesionalId)
     .in('estado', ['pendiente', 'confirmado'])
     .gte('fecha_hora', new Date().toISOString());
 
-  const { error } = await supabaseAdmin.from('pacientes').delete().eq('id', id);
+  const { error } = await supabaseAdmin
+    .from('pacientes')
+    .delete()
+    .eq('id', id)
+    .eq('profesional_id', profesionalId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

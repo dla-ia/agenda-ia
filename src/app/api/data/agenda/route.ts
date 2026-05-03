@@ -111,6 +111,7 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  const profesionalId = await getProfesionalId();
   const { id, estado } = await req.json();
   if (!id || !estado) return NextResponse.json({ error: 'id y estado requeridos' }, { status: 400 });
   if (!ESTADOS_VALIDOS.includes(estado)) return NextResponse.json({ error: 'estado inválido' }, { status: 400 });
@@ -118,7 +119,8 @@ export async function PATCH(req: Request) {
   const { error } = await supabaseAdmin
     .from('turnos')
     .update({ estado, updated_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('profesional_id', profesionalId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

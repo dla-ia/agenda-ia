@@ -22,7 +22,8 @@ async function sendWhatsApp(telefono: string, mensaje: string) {
 
   const twilioSid   = process.env.TWILIO_ACCOUNT_SID!;
   const twilioToken = process.env.TWILIO_AUTH_TOKEN!;
-  const fromNumber  = process.env.TWILIO_PHONE_NUMBER!;
+  const rawFrom     = process.env.TWILIO_PHONE_NUMBER ?? 'whatsapp:+14155238886';
+  const fromNumber  = rawFrom.startsWith('whatsapp:') ? rawFrom : `whatsapp:${rawFrom}`;
 
   const res = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
