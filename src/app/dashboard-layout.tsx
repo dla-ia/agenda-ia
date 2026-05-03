@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import { Lockup } from '@/components/brand/Lockup';
@@ -27,7 +27,6 @@ const navigation = [
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       </svg>
     ),
-    badge: 3,
   },
   {
     name: 'Agenda',
@@ -86,7 +85,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
@@ -107,8 +105,7 @@ export default function DashboardLayout({
   async function handleLogout() {
     const supabase = createSupabaseBrowser();
     await supabase.auth.signOut();
-    router.push('/auth');
-    router.refresh();
+    window.location.href = '/auth';
   }
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
@@ -152,11 +149,6 @@ export default function DashboardLayout({
                   {item.icon}
                 </span>
                 <span>{item.name}</span>
-                {item.badge ? (
-                  <span className="nav-count" style={{ background: active ? 'var(--bg-2)' : undefined }}>
-                    {item.badge}
-                  </span>
-                ) : null}
               </Link>
             );
           })}

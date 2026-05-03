@@ -2,17 +2,17 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/', '/auth'];
+// Rutas siempre públicas (sin sesión y sin restricción)
+const ALWAYS_PUBLIC = ['/'];
+// Rutas de auth: accesibles sin sesión, pero si hay sesión → redirigir al panel
+const AUTH_PATHS = ['/auth'];
 
-// Mientras NEXT_PUBLIC_PROFESIONAL_ID esté seteado, el panel es accesible sin login.
-// Para activar auth obligatorio: eliminar esa variable de Vercel.
 const AUTH_BYPASS = !!process.env.NEXT_PUBLIC_PROFESIONAL_ID;
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.includes(pathname);
 
-  if (isPublic || AUTH_BYPASS) {
+  if (AUTH_BYPASS || ALWAYS_PUBLIC.includes(pathname)) {
     return NextResponse.next();
   }
 
@@ -36,11 +36,14 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Sin sesión: solo puede estar en rutas de auth
   if (!user) {
+    if (AUTH_PATHS.includes(pathname)) return NextResponse.next();
     return NextResponse.redirect(new URL('/auth', request.url));
   }
 
-  if (pathname === '/auth') {
+  // Con sesión: no puede estar en rutas de auth (ya está adentro)
+  if (AUTH_PATHS.includes(pathname)) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
