@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import { Lockup } from '@/components/brand/Lockup';
 
@@ -36,7 +35,6 @@ function Alert({ msg, type }: { msg: string; type: 'error' | 'info' }) {
 
 /* ── Página ─────────────────────────────────────────── */
 export default function AuthPage() {
-  const router = useRouter();
   const supabase = createSupabaseBrowser();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -65,8 +63,7 @@ export default function AuthPage() {
       setAlert({ msg: 'Email o contraseña incorrectos.', type: 'error' });
       setLoading(false);
     } else {
-      router.push('/dashboard');
-      router.refresh();
+      window.location.href = '/dashboard';
     }
   }
 
@@ -110,8 +107,7 @@ export default function AuthPage() {
       return;
     }
 
-    router.push('/onboarding');
-    router.refresh();
+    window.location.href = '/onboarding';
   }
 
   return (

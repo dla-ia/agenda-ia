@@ -104,7 +104,7 @@ function Step1({ onNext, userId }: { onNext: (data: Step1Data) => void; userId: 
 
   async function handleNext(e: React.FormEvent) {
     e.preventDefault();
-    if (slugStatus === 'taken' || slugStatus === 'invalid') return;
+    if (!userId || slugStatus === 'taken' || slugStatus === 'invalid') return;
     setSaving(true);
     const res = await fetch('/api/auth/profesional', {
       method: 'PATCH',
@@ -389,11 +389,11 @@ export default function OnboardingPage() {
   const [profesionalSlug, setProfesionalSlug] = useState('');
 
   // Obtener userId al montar
-  useState(() => {
+  useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user?.id) setUserId(data.user.id);
     });
-  });
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 24px' }}>

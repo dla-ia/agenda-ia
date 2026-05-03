@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import DashboardLayout from './dashboard-layout';
 
-const PUBLIC_ROUTES = ['/'];
+const PUBLIC_ROUTES = ['/', '/auth', '/onboarding'];
 
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
