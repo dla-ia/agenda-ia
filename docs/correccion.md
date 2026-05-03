@@ -38,6 +38,7 @@
 | 26 | 2026-05-03 | — | UI | Botón "Tomar control" en conversaciones sin handler — falsa promesa de funcionalidad — deshabilitado con tooltip "Próximamente" | `conversaciones/page.tsx` | ✅ |
 | 27 | 2026-05-03 | — | UI | Tab "Integraciones": WhatsApp mostraba badge "conectado" (verde) siendo sandbox — corregido a "pendiente" (amarillo) con descripción honesta | `agente/page.tsx` | ✅ |
 | 28 | 2026-05-03 | — | UX | Tab "Precios": tarifas hardcodeadas 18.000/15.000/22.000 no editables y no persistían — reemplazadas por filas editables con persistencia en `configuraciones.agente_tarifas` | `agente/page.tsx` | ✅ |
+| 29 | 2026-05-03 | — | Lógica | Slug en /configuracion no se normalizaba — mayúsculas, espacios y caracteres especiales podían generar slugs inválidos para URL | `api/data/configuracion/route.ts` · `configuracion/page.tsx` | ✅ |
 
 ---
 
