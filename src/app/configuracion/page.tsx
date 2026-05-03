@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 
 /* ── helpers ──────────────────────────────────────────── */
@@ -215,8 +216,16 @@ function CuentaCard() {
 }
 
 /* ── Card integraciones ───────────────────────────────── */
-function IntegracionesCard({ profesionalId }: { profesionalId: string }) {
+function IntegracionesCardInner({ profesionalId }: { profesionalId: string }) {
+  const searchParams = useSearchParams();
   const [gcal, setGcal] = useState(false);
+  const [googleMsg, setGoogleMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  useEffect(() => {
+    const g = searchParams.get('google');
+    if (g === 'success') setGoogleMsg({ text: '✓ Google Calendar conectado correctamente', ok: true });
+    if (g === 'error')   setGoogleMsg({ text: '✗ No se pudo conectar Google Calendar. Intentá de nuevo.', ok: false });
+  }, [searchParams]);
 
   useEffect(() => {
     fetch('/api/data/configuracion')
@@ -229,6 +238,11 @@ function IntegracionesCard({ profesionalId }: { profesionalId: string }) {
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500, color: 'var(--ink)', margin: '0 0 20px', letterSpacing: '-0.01em' }}>
         Integraciones
       </h2>
+      {googleMsg && (
+        <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, fontSize: 13, background: googleMsg.ok ? 'rgba(138,161,118,0.12)' : 'rgba(184,106,106,0.12)', color: googleMsg.ok ? '#4E6B3A' : '#8A3A3A', border: `1px solid ${googleMsg.ok ? 'rgba(138,161,118,0.4)' : 'rgba(184,106,106,0.4)'}` }}>
+          {googleMsg.text}
+        </div>
+      )}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--line)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -268,6 +282,14 @@ function IntegracionesCard({ profesionalId }: { profesionalId: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function IntegracionesCard({ profesionalId }: { profesionalId: string }) {
+  return (
+    <Suspense fallback={null}>
+      <IntegracionesCardInner profesionalId={profesionalId} />
+    </Suspense>
   );
 }
 
