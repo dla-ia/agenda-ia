@@ -15,7 +15,9 @@
 
 ### Auth y onboarding
 - [x] Activar auth obligatorio en producción: `NEXT_PUBLIC_PROFESIONAL_ID` eliminado de Vercel + cuenta auth creada para profesional de dev
-- [ ] Probar flujo completo registro → onboarding → dashboard con cuenta nueva
+- [x] Flujo registro: 3 bugs corregidos (congelado, sidebar en auth, sin sesión post-registro)
+- [x] `/configuracion`: página de perfil, cuenta e integraciones para el profesional
+- [ ] Probar flujo completo registro → onboarding → dashboard con cuenta nueva (post-fixes)
 
 ### Dominio calendaria.com.ar ✅ COMPLETADO
 - [x] Cargar delegaciones en NIC Argentina: `ns1.vercel-dns.com` y `ns2.vercel-dns.com`
@@ -46,6 +48,16 @@
 - [ ] Resend: email de confirmación de turno (paquete instalado, falta RESEND_API_KEY)
 
 ---
+
+## 🟢 Completadas — Sesión 03/05/2026 (autónoma, sin Diego)
+- [x] `/configuracion`: nueva página (perfil, cuenta, integraciones) + API route GET+PATCH
+- [x] `PROFESIONAL_ID` hardcodeado eliminado de `/api/data/agente`, `/api/data/conversaciones`, `dashboard/page.tsx`
+- [x] `fetchActividad` en dashboard ahora filtra por `profesional_id` — no mezclaba datos entre profesionales
+- [x] Sidebar: nombre del profesional cargado desde `profesionales` (antes era "Dr. Diego" hardcodeado)
+- [x] Sidebar: badge "3" hardcodeado en Conversaciones eliminado
+- [x] `handleLogout` migrado a `window.location.href` (igual que login/registro)
+- [x] Middleware refactorizado: `AUTH_PATHS=['/auth']` separado de `ALWAYS_PUBLIC=['/']` — usuarios logueados en /auth ahora redirigen a /dashboard correctamente
+- [x] Sidebar: `Configuración` agregado al nav con ícono de engranaje
 
 ## 🟢 Completadas — Sesión 02/05/2026 (día siguiente)
 - [x] `flujo.md`: diagrama completo del sistema (Mermaid + Markdown importable en XMind)
