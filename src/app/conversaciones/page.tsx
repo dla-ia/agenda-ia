@@ -49,7 +49,12 @@ export default function ConversacionesPage() {
   const [cargando, setCargando] = useState(true);
   const [cargandoMsgs, setCargandoMsgs] = useState(false);
   const [filtro, setFiltro] = useState<'todas' | 'activa' | 'archivada'>('todas');
+  const [modoControl, setModoControl] = useState(false);
+  const [mensajeTexto, setMensajeTexto] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState('');
   const chatRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     fetch('/api/data/conversaciones')
@@ -65,14 +70,61 @@ export default function ConversacionesPage() {
       .then(r => r.json())
       .then(data => { setMensajes(Array.isArray(data) ? data : []); setCargandoMsgs(false); })
       .catch(() => setCargandoMsgs(false));
+    // Salir de modo control al cambiar de conversación
+    setModoControl(false);
+    setMensajeTexto('');
+    setErrorEnvio('');
   }, [seleccionada]);
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [mensajes]);
 
+  useEffect(() => {
+    if (modoControl && inputRef.current) inputRef.current.focus();
+  }, [modoControl]);
+
   const convsFiltradas = convs.filter(c => filtro === 'todas' || c.estado === filtro);
   const nombreConv = (c: Conversacion) => c.pacientes?.nombre ?? c.telefono;
+
+  async function handleEnviar() {
+    if (!seleccionada || !mensajeTexto.trim() || enviando) return;
+    setEnviando(true);
+    setErrorEnvio('');
+    try {
+      const res = await fetch('/api/data/conversaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversacion_id: seleccionada.id, mensaje: mensajeTexto.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setErrorEnvio(json.error ?? 'Error al enviar');
+        setEnviando(false);
+        return;
+      }
+      // Agregar el mensaje nuevo a la lista local
+      if (json.mensaje) {
+        setMensajes(prev => [...prev, json.mensaje as Mensaje]);
+      }
+      setMensajeTexto('');
+      setConvs(prev => prev.map(c =>
+        c.id === seleccionada.id
+          ? { ...c, ultimo_mensaje: mensajeTexto.trim(), ultimo_mensaje_at: new Date().toISOString() }
+          : c
+      ));
+    } catch {
+      setErrorEnvio('Error de red. Intentá de nuevo.');
+    }
+    setEnviando(false);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleEnviar();
+    }
+  }
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 0px)', overflow: 'hidden' }}>
@@ -182,15 +234,40 @@ export default function ConversacionesPage() {
               <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{nombreConv(seleccionada)}</p>
               <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: 0, fontFamily: 'var(--font-mono)' }}>{seleccionada.telefono}</p>
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
               <span className={`badge ${seleccionada.estado === 'activa' ? 'badge-success' : ''}`}>
                 {seleccionada.estado}
               </span>
-              <button className="btn btn-sm" disabled title="Próximamente — Aurora maneja esta conversación">
-                Tomar control
-              </button>
+              {modoControl ? (
+                <button
+                  className="btn btn-sm"
+                  onClick={() => { setModoControl(false); setMensajeTexto(''); setErrorEnvio(''); }}
+                  style={{ background: 'rgba(184,106,106,0.12)', borderColor: '#B86A6A', color: '#8A3A3A' }}
+                >
+                  Cancelar
+                </button>
+              ) : (
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={() => setModoControl(true)}
+                >
+                  Tomar control
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Banner modo control */}
+          {modoControl && (
+            <div style={{ padding: '8px 20px', background: 'rgba(194,106,74,0.08)', borderBottom: '1px solid rgba(194,106,74,0.2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span style={{ fontSize: 12, color: 'var(--terracotta)', fontWeight: 500 }}>
+                Modo manual activo — los mensajes se envían directamente al paciente por WhatsApp
+              </span>
+            </div>
+          )}
 
           {/* Mensajes */}
           <div ref={chatRef} className="chat-area scroll-styled" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -212,12 +289,51 @@ export default function ConversacionesPage() {
             )}
           </div>
 
-          {/* Footer — nota del agente */}
-          <div style={{ padding: '12px 20px', background: 'var(--bg-2)', borderTop: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
-              ✦ Aurora está manejando esta conversación automáticamente
-            </span>
-          </div>
+          {/* Footer */}
+          {modoControl ? (
+            <div style={{ padding: '12px 20px', background: 'var(--surface)', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {errorEnvio && (
+                <p style={{ fontSize: 12, color: '#B86A6A', margin: 0 }}>{errorEnvio}</p>
+              )}
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+                <textarea
+                  ref={inputRef}
+                  value={mensajeTexto}
+                  onChange={e => setMensajeTexto(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Escribí tu mensaje... (Enter para enviar, Shift+Enter para salto de línea)"
+                  rows={2}
+                  style={{
+                    flex: 1,
+                    resize: 'none',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid var(--line)',
+                    background: 'var(--bg)',
+                    fontSize: 13,
+                    color: 'var(--ink)',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    lineHeight: 1.45,
+                  }}
+                />
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleEnviar}
+                  disabled={enviando || !mensajeTexto.trim()}
+                  style={{ flexShrink: 0, padding: '10px 18px' }}
+                >
+                  {enviando ? 'Enviando…' : 'Enviar'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: '12px 20px', background: 'var(--bg-2)', borderTop: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+                ✦ Aurora está manejando esta conversación automáticamente
+              </span>
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
