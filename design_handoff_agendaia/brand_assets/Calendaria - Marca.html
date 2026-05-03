@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Calendaria · Sistema de marca</title>
+<meta name="viewport" content="width=1440, initial-scale=1" />
+<link rel="stylesheet" href="styles.css" />
+<style>
+  body { background: #F6F1EA; padding: 0; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 80px 64px 120px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+  .display { font-family: var(--font-serif); font-weight: 400; font-size: 88px; line-height: 0.95; letter-spacing: -0.035em; color: var(--ink); margin: 12px 0 24px; }
+  .lede { font-family: var(--font-serif); font-style: italic; font-size: 22px; line-height: 1.4; color: var(--ink-2); max-width: 640px; font-weight: 400; }
+  .section { margin-top: 88px; }
+  .section h2 { font-family: var(--font-serif); font-size: 32px; font-weight: 500; letter-spacing: -0.02em; margin: 0 0 4px; }
+  .section .sub { color: var(--ink-3); font-size: 14px; margin-bottom: 32px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+  .card-pad-lg { padding: 48px; }
+  .card-dark { background: var(--ink); border-color: var(--ink); color: #F6F1EA; }
+  .card-clay { background: #E5D7C5; border-color: transparent; }
+  .card-terra { background: var(--terracotta); border-color: transparent; color: #FBF7F1; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+  .swatch { aspect-ratio: 4/5; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(0,0,0,0.04); }
+  .swatch .name { font-family: var(--font-serif); font-size: 18px; font-weight: 500; }
+  .swatch .meta { font-family: var(--font-mono); font-size: 11px; opacity: 0.75; }
+  .divider { height: 1px; background: var(--line); margin: 80px 0; }
+  .hero-mark { display: flex; align-items: center; justify-content: center; min-height: 360px; background: linear-gradient(135deg, #EFE6DA 0%, #E5D7C5 100%); border-radius: 18px; }
+  .ratio { background: rgba(255,255,255,0.4); padding: 4px 8px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; background: var(--bg-2); color: var(--ink-2); }
+  .specimen { font-family: var(--font-serif); }
+  .scale-row { display: grid; grid-template-columns: 100px 1fr 90px; gap: 24px; align-items: baseline; padding: 20px 0; border-top: 1px solid var(--line); }
+  .scale-row:first-child { border-top: 0; }
+  .scale-row .label-col { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); padding-top: 8px; }
+  .scale-row .meta-col { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); text-align: right; padding-top: 8px; }
+  .app-card { aspect-ratio: 1.5/1; border-radius: 14px; padding: 28px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; position: relative; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { Fragment } = React;
+
+// ─── ISOTIPO ──────────────────────────────────────────────────
+// Concept: una "C" que es también un círculo de tiempo abierto
+// (un día que recibe). Hueco superior derecho = espacio que se
+// abre, una pausa. El punto representa el momento marcado en
+// la agenda. Trazo orgánico, terminales suaves.
+const Isotype = ({ size = 72, color = "#C26A4A", bg = null, dotColor = null }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-label="Calendaria isotipo">
+    {bg && <rect width="64" height="64" rx="14" fill={bg} />}
+    {/* Anillo abierto (la C/círculo del día) */}
+    <path
+      d="M50 22 C50 14, 42 8, 32 8 C18 8, 8 18, 8 32 C8 46, 18 56, 32 56 C42 56, 50 50, 53 42"
+      stroke={color}
+      strokeWidth="5.5"
+      strokeLinecap="round"
+      fill="none"
+    />
+    {/* Punto/momento */}
+    <circle cx="50" cy="22" r="4.2" fill={dotColor || color} />
+  </svg>
+);
+
+// ─── WORDMARK ─────────────────────────────────────────────────
+// Fraunces 500, optical size grande. Todo en minúsculas: cercanía.
+const Wordmark = ({ size = 56, color = "#2C241D" }) => (
+  <span style={{
+    fontFamily: "Fraunces, serif",
+    fontWeight: 500,
+    fontSize: size,
+    letterSpacing: "-0.035em",
+    color,
+    fontOpticalSizing: "auto",
+    fontVariationSettings: '"opsz" 144',
+    lineHeight: 1,
+  }}>
+    calendaria
+  </span>
+);
+
+// ─── LOCKUP ───────────────────────────────────────────────────
+const Lockup = ({ size = 56, color = "#2C241D", markColor = "#C26A4A", gap = 16 }) => (
+  <div style={{ display: "inline-flex", alignItems: "center", gap }}>
+    <Isotype size={size * 1.05} color={markColor} />
+    <Wordmark size={size} color={color} />
+  </div>
+);
+
+// ─── PÁGINA ───────────────────────────────────────────────────
+const Page = () => (
+  <div className="page">
+    {/* HERO */}
+    <div>
+      <div className="eyebrow">Sistema de marca · v1.0 · 2026</div>
+      <h1 className="display">calendaria</h1>
+      <p className="lede">
+        La agenda que atiende por vos. Identidad cálida y humana para una herramienta de tiempo
+        diseñada para todo trabajador independiente que recibe gente.
+      </p>
+    </div>
+
+    <div className="hero-mark" style={{ marginTop: 56 }}>
+      <Lockup size={72} gap={22} />
+    </div>
+
+    {/* MANIFIESTO */}
+    <div className="section">
+      <div className="grid-2">
+        <div>
+          <div className="eyebrow">Manifiesto</div>
+          <h2 style={{ fontFamily: "Fraunces", fontWeight: 400, fontSize: 38, lineHeight: 1.15, letterSpacing: "-0.02em", marginTop: 16 }}>
+            Tu trabajo es atender.<br />
+            <em style={{ color: "var(--terracotta)" }}>El nuestro, agendar.</em>
+          </h2>
+        </div>
+        <div style={{ fontFamily: "Fraunces", fontSize: 18, lineHeight: 1.55, color: "var(--ink-2)", paddingTop: 32 }}>
+          Calendaria es para todo profesional independiente que vive de turnos: psicólogos, kinesiólogos,
+          odontólogos, peluqueros, manicuras, mecánicos de bici, tatuadores, masajistas, entrenadores.
+          Personas que trabajan con sus manos, con su escucha, con su oficio — y que pierden horas
+          contestando WhatsApps en vez de atender. La marca respira como un taller bien iluminado:
+          papel, madera, tierra. Herramientas a mano. Sin estridencia digital, sin urgencia falsa.
+        </div>
+      </div>
+    </div>
+
+    <div className="divider" />
+
+    {/* ISOTIPO */}
+    <div className="section">
+      <h2>Isotipo</h2>
+      <div className="sub">El símbolo. Un círculo abierto con un momento marcado.</div>
+
+      <div className="grid-3">
+        <div className="card" style={{ background: "#FBF7F1", textAlign: "center", padding: 56 }}>
+          <Isotype size={140} />
+          <div className="label" style={{ marginTop: 32 }}>Primario · Terracota</div>
+        </div>
+        <div className="card card-dark" style={{ textAlign: "center", padding: 56 }}>
+          <Isotype size={140} color="#F6F1EA" />
+          <div className="label" style={{ marginTop: 32, color: "rgba(246,241,234,0.6)" }}>Sobre fondo oscuro · Hueso</div>
+        </div>
+        <div className="card card-terra" style={{ textAlign: "center", padding: 56 }}>
+          <Isotype size={140} color="#FBF7F1" />
+          <div className="label" style={{ marginTop: 32, color: "rgba(251,247,241,0.7)" }}>Reverso · Sobre terracota</div>
+        </div>
+      </div>
+
+      <div className="grid-2" style={{ marginTop: 24 }}>
+        <div className="card">
+          <div className="label">Concepto</div>
+          <p style={{ fontFamily: "Fraunces", fontSize: 17, lineHeight: 1.55, color: "var(--ink-2)", marginTop: 12 }}>
+            Una <strong style={{ color: "var(--ink)" }}>C</strong> que es también un círculo del día.
+            La apertura superior derecha es la disponibilidad: el momento por venir, lo que aún no se llenó.
+            El punto es el turno marcado, el encuentro que ya tiene nombre.
+          </p>
+        </div>
+        <div className="card">
+          <div className="label">Construcción</div>
+          <div style={{ display: "flex", gap: 32, alignItems: "center", marginTop: 16 }}>
+            <svg width="160" height="160" viewBox="0 0 64 64">
+              <rect x="0" y="0" width="64" height="64" fill="none" stroke="#DDD1C0" strokeDasharray="2 2" strokeWidth="0.4" />
+              <circle cx="32" cy="32" r="24" fill="none" stroke="#DDD1C0" strokeDasharray="2 2" strokeWidth="0.4" />
+              <line x1="32" y1="0" x2="32" y2="64" stroke="#DDD1C0" strokeDasharray="2 2" strokeWidth="0.4" />
+              <line x1="0" y1="32" x2="64" y2="32" stroke="#DDD1C0" strokeDasharray="2 2" strokeWidth="0.4" />
+              <path d="M50 22 C50 14, 42 8, 32 8 C18 8, 8 18, 8 32 C8 46, 18 56, 32 56 C42 56, 50 50, 53 42"
+                stroke="#C26A4A" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+              <circle cx="50" cy="22" r="4.2" fill="#C26A4A" />
+            </svg>
+            <div style={{ fontSize: 13, lineHeight: 1.7, color: "var(--ink-2)" }}>
+              Caja 64×64 · radio del anillo 24<br />
+              Trazo 5.5 · terminales redondeadas<br />
+              Punto Ø 8.4 · ángulo de apertura 60°<br />
+              Margen mínimo: <span className="ratio">x = altura del punto</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* WORDMARK */}
+    <div className="section">
+      <h2>Wordmark</h2>
+      <div className="sub">Fraunces 500, optical size 144, tracking ajustado. Todo en minúsculas.</div>
+      <div className="card card-pad-lg" style={{ background: "#FBF7F1" }}>
+        <Wordmark size={120} />
+      </div>
+      <div className="grid-2" style={{ marginTop: 24 }}>
+        <div className="card card-dark" style={{ padding: 48 }}>
+          <Wordmark size={64} color="#F6F1EA" />
+          <div className="label" style={{ marginTop: 32, color: "rgba(246,241,234,0.6)" }}>Hueso #F6F1EA · sobre tinta</div>
+        </div>
+        <div className="card card-clay" style={{ padding: 48 }}>
+          <Wordmark size={64} color="#A95838" />
+          <div className="label" style={{ marginTop: 32, color: "var(--ink-2)" }}>Terracota oscuro · sobre arcilla</div>
+        </div>
+      </div>
+    </div>
+
+    {/* LOCKUP */}
+    <div className="section">
+      <h2>Lockup horizontal</h2>
+      <div className="sub">Versión combinada para usos firmados: web, headers, firmas de email.</div>
+      <div className="card card-pad-lg" style={{ background: "#FBF7F1" }}>
+        <Lockup size={56} gap={18} />
+      </div>
+      <div className="grid-3" style={{ marginTop: 24 }}>
+        <div className="card" style={{ padding: 32 }}>
+          <Lockup size={28} gap={10} />
+          <div className="label" style={{ marginTop: 24 }}>Mín. uso · 28px</div>
+        </div>
+        <div className="card" style={{ padding: 32 }}>
+          <Lockup size={36} gap={12} />
+          <div className="label" style={{ marginTop: 24 }}>Web header · 36px</div>
+        </div>
+        <div className="card" style={{ padding: 32 }}>
+          <Lockup size={48} gap={16} />
+          <div className="label" style={{ marginTop: 24 }}>Marketing · 48px</div>
+        </div>
+      </div>
+    </div>
+
+      <div className="section" style={{ marginTop: 56 }}>
+        <div className="eyebrow" style={{ marginBottom: 24 }}>Para quién es</div>
+        <div className="grid-4">
+          {[
+            { emoji: "🧵", name: "Salud", who: "Psicólogos, kine, odontólogos, nutricionistas" },
+            { emoji: "✂️", name: "Estética", who: "Peluquerías, manicuras, barberías, masajes" },
+            { emoji: "🔧", name: "Oficios", who: "Mecánicos, bicicleterías, electricistas, plomeros" },
+            { emoji: "🎓", name: "Servicios", who: "Tatuadores, fotógrafos, entrenadores, coaches" },
+          ].map(c => (
+            <div key={c.name} className="card" style={{ padding: 24 }}>
+              <div style={{ fontSize: 28 }}>{c.emoji}</div>
+              <div style={{ fontFamily: "Fraunces", fontSize: 20, fontWeight: 500, marginTop: 16, letterSpacing: "-0.01em" }}>{c.name}</div>
+              <div style={{ fontFamily: "Inter", fontSize: 13, color: "var(--ink-3)", marginTop: 6, lineHeight: 1.5 }}>{c.who}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+    <div className="divider" />
+
+    {/* PALETA */}
+    <div className="section">
+      <h2>Paleta</h2>
+      <div className="sub">Tonos tierra, mucho papel y un solo acento que sostiene todo.</div>
+
+      <div className="label" style={{ marginBottom: 12 }}>Neutros · papel & tinta</div>
+      <div className="grid-4">
+        {[
+          { name: "Hueso", hex: "#F6F1EA", text: "#2C241D" },
+          { name: "Arena", hex: "#EFE6DA", text: "#2C241D" },
+          { name: "Arcilla", hex: "#E5D7C5", text: "#2C241D" },
+          { name: "Tinta", hex: "#2C241D", text: "#F6F1EA" },
+        ].map(s => (
+          <div key={s.hex} className="swatch" style={{ background: s.hex, color: s.text }}>
+            <div />
+            <div>
+              <div className="name">{s.name}</div>
+              <div className="meta">{s.hex}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="label" style={{ marginBottom: 12, marginTop: 32 }}>Acentos · piel y tierra</div>
+      <div className="grid-4">
+        {[
+          { name: "Terracota", hex: "#C26A4A", text: "#FBF7F1", role: "Primario" },
+          { name: "Olivo", hex: "#6B7148", text: "#FBF7F1", role: "Confirmación" },
+          { name: "Ocre", hex: "#C99A3F", text: "#FBF7F1", role: "Atención" },
+          { name: "Rosa seco", hex: "#B86A6A", text: "#FBF7F1", role: "Cuidado" },
+        ].map(s => (
+          <div key={s.hex} className="swatch" style={{ background: s.hex, color: s.text }}>
+            <div className="meta" style={{ opacity: 0.8 }}>{s.role}</div>
+            <div>
+              <div className="name">{s.name}</div>
+              <div className="meta">{s.hex}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card" style={{ marginTop: 32, background: "var(--bg-2)", borderColor: "transparent" }}>
+        <div className="label">Reglas de uso</div>
+        <ul style={{ fontFamily: "Fraunces", fontSize: 16, lineHeight: 1.6, color: "var(--ink-2)", margin: "12px 0 0", paddingLeft: 22 }}>
+          <li>El <strong>hueso</strong> es el aire. 60–70% de cualquier composición.</li>
+          <li>La <strong>terracota</strong> es el único acento "fuerte". Usar con moderación: botones primarios, marca, momentos clave.</li>
+          <li>Olivo y rosa seco son para estados (confirmado, error). Nunca decorativos.</li>
+          <li>Evitar gradientes saturados. Si hay gradiente, usar siempre dentro del mismo grupo (hueso → arena → arcilla).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div className="divider" />
+
+    {/* TIPOGRAFÍA */}
+    <div className="section">
+      <h2>Tipografía</h2>
+      <div className="sub">Tres familias. Fraunces para alma, Inter para claridad, JetBrains Mono para datos.</div>
+
+      <div className="grid-3">
+        <div className="card" style={{ padding: 32 }}>
+          <div className="pill">Display & UI titles</div>
+          <div style={{ fontFamily: "Fraunces", fontWeight: 500, fontSize: 64, lineHeight: 1, letterSpacing: "-0.03em", marginTop: 24 }}>Fraunces</div>
+          <div style={{ fontFamily: "Fraunces", fontStyle: "italic", fontSize: 22, color: "var(--ink-2)", marginTop: 8 }}>Cálida, con personalidad</div>
+          <div className="label" style={{ marginTop: 24 }}>400 · 500 · 600 · 700 · italic · opsz 9–144</div>
+        </div>
+        <div className="card" style={{ padding: 32 }}>
+          <div className="pill">UI body & forms</div>
+          <div style={{ fontFamily: "Inter", fontWeight: 500, fontSize: 64, lineHeight: 1, letterSpacing: "-0.025em", marginTop: 24 }}>Inter</div>
+          <div style={{ fontFamily: "Inter", fontSize: 16, color: "var(--ink-2)", marginTop: 8 }}>Neutra, legible, técnica</div>
+          <div className="label" style={{ marginTop: 24 }}>300 · 400 · 450 · 500 · 600 · 700</div>
+        </div>
+        <div className="card" style={{ padding: 32 }}>
+          <div className="pill">Datos · timestamps</div>
+          <div style={{ fontFamily: "JetBrains Mono", fontWeight: 500, fontSize: 50, lineHeight: 1, marginTop: 24 }}>JetBrains</div>
+          <div style={{ fontFamily: "JetBrains Mono", fontSize: 14, color: "var(--ink-2)", marginTop: 8 }}>14:30 · $8.000 · +54 11</div>
+          <div className="label" style={{ marginTop: 24 }}>400 · 500 · uso técnico</div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 24, padding: 40 }}>
+        <div className="label">Escala tipográfica</div>
+        <div style={{ marginTop: 20 }}>
+          <div className="scale-row">
+            <div className="label-col">Display</div>
+            <div className="specimen" style={{ fontWeight: 500, fontSize: 64, lineHeight: 1.05, letterSpacing: "-0.03em" }}>Una agenda que escucha</div>
+            <div className="meta-col">Fraunces 500 / 64</div>
+          </div>
+          <div className="scale-row">
+            <div className="label-col">H1</div>
+            <div className="specimen" style={{ fontWeight: 500, fontSize: 32, lineHeight: 1.15, letterSpacing: "-0.02em" }}>Tu primera consulta es un paso</div>
+            <div className="meta-col">Fraunces 500 / 32</div>
+          </div>
+          <div className="scale-row">
+            <div className="label-col">H2</div>
+            <div className="specimen" style={{ fontWeight: 500, fontSize: 24, lineHeight: 1.2, letterSpacing: "-0.015em" }}>Conversaciones del día</div>
+            <div className="meta-col">Fraunces 500 / 24</div>
+          </div>
+          <div className="scale-row">
+            <div className="label-col">Métrica</div>
+            <div className="specimen" style={{ fontWeight: 500, fontSize: 38, lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>23 turnos · $184.000</div>
+            <div className="meta-col">Fraunces 500 / 38 · tab</div>
+          </div>
+          <div className="scale-row">
+            <div className="label-col">Body</div>
+            <div style={{ fontFamily: "Inter", fontSize: 14, lineHeight: 1.5, color: "var(--ink-2)" }}>El agente respondió a Mariana sobre disponibilidad de los jueves a la tarde y ofreció un turno para el 12 de mayo a las 16:00.</div>
+            <div className="meta-col">Inter 400 / 14</div>
+          </div>
+          <div className="scale-row">
+            <div className="label-col">Eyebrow</div>
+            <div style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)" }}>Esta semana · sincronizado</div>
+            <div className="meta-col">Inter 500 / 11</div>
+          </div>
+          <div className="scale-row">
+            <div className="label-col">Mono</div>
+            <div style={{ fontFamily: "JetBrains Mono", fontSize: 13, color: "var(--ink-2)" }}>14:30 · 12/05 · +54 11 5555 0123 · $8.000</div>
+            <div className="meta-col">JB Mono 400 / 13</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div className="divider" />
+
+    {/* TONO DE VOZ */}
+    <div className="section">
+      <h2>Tono de voz</h2>
+      <div className="sub">Cómo habla Calendaria — la marca y el agente Aurora.</div>
+      <div className="grid-3">
+        {[
+          { word: "Cálido", desc: "Como un buen recepcionista que ya te conoce. Saluda, confirma, no apura." },
+          { word: "Claro", desc: "Frases cortas. Una idea por mensaje. Sin jerga, sin formalismos vacíos." },
+          { word: "Útil", desc: "Habla del turno, del precio, del lugar. Resuelve. No vende, no opina, no presiona." },
+        ].map(t => (
+          <div key={t.word} className="card" style={{ padding: 32 }}>
+            <div style={{ fontFamily: "Fraunces", fontStyle: "italic", fontWeight: 400, fontSize: 36, color: "var(--terracotta)", letterSpacing: "-0.02em" }}>{t.word}</div>
+            <div style={{ fontFamily: "Fraunces", fontSize: 16, lineHeight: 1.55, color: "var(--ink-2)", marginTop: 12 }}>{t.desc}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid-2" style={{ marginTop: 24 }}>
+        <div className="card" style={{ padding: 32, background: "#F0EDE5" }}>
+          <div className="label" style={{ color: "var(--olive)" }}>✓ Decimos</div>
+          <ul style={{ fontFamily: "Fraunces", fontSize: 16, lineHeight: 1.7, color: "var(--ink)", margin: "12px 0 0", paddingLeft: 20 }}>
+            <li>"Hola, ¿en qué te puedo ayudar?"</li>
+            <li>"¿Te queda mejor el martes a la tarde o el jueves a la mañana?"</li>
+            <li>"Listo, te lo agendé. Te llega un recordatorio el día anterior."</li>
+            <li>"Si necesitás cambiarlo, escribime sin problema."</li>
+          </ul>
+        </div>
+        <div className="card" style={{ padding: 32, background: "#F2EAE5" }}>
+          <div className="label" style={{ color: "var(--rose)" }}>✗ No decimos</div>
+          <ul style={{ fontFamily: "Fraunces", fontSize: 16, lineHeight: 1.7, color: "var(--ink-2)", margin: "12px 0 0", paddingLeft: 20, textDecoration: "line-through", textDecorationColor: "rgba(184,106,106,0.4)" }}>
+            <li>"¡Hola! 🎉 ¿Listx para reservar?"</li>
+            <li>"Selecciona un horario disponible del calendario adjunto."</li>
+            <li>"Tu reserva ha sido procesada exitosamente."</li>
+            <li>"Recordá que la cancellation policy es de 24hs."</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div className="divider" />
+
+    {/* APLICACIONES */}
+    <div className="section">
+      <h2>Aplicaciones</h2>
+      <div className="sub">La marca puesta a trabajar.</div>
+
+      <div className="grid-3">
+        {/* Tarjeta de presentación */}
+        <div className="app-card" style={{ background: "#FBF7F1", border: "1px solid var(--line)" }}>
+          <Isotype size={36} />
+          <div>
+            <div style={{ fontFamily: "Fraunces", fontWeight: 500, fontSize: 18, letterSpacing: "-0.01em" }}>Taller La Rueda</div>
+            <div style={{ fontFamily: "Inter", fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>Mecánica de bicicletas · Palermo</div>
+            <div style={{ fontFamily: "JetBrains Mono", fontSize: 11, color: "var(--ink-2)", marginTop: 8 }}>+54 11 5555 0123</div>
+            <div style={{ fontFamily: "JetBrains Mono", fontSize: 11, color: "var(--terracotta)", marginTop: 2 }}>calendaria.app/larueda</div>
+          </div>
+        </div>
+
+        {/* Favicon / app icon */}
+        <div className="app-card" style={{ background: "linear-gradient(135deg, #EFE6DA 0%, #E5D7C5 100%)", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ width: 96, height: 96, background: "var(--terracotta)", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 12px 32px rgba(194,106,74,0.35)" }}>
+            <Isotype size={56} color="#FBF7F1" />
+          </div>
+          <div className="label" style={{ position: "absolute", bottom: 20 }}>App icon</div>
+        </div>
+
+        {/* Email signature */}
+        <div className="app-card" style={{ background: "#FBF7F1", border: "1px solid var(--line)" }}>
+          <div className="label">Firma de email</div>
+          <div>
+            <Lockup size={18} gap={8} />
+            <div style={{ fontFamily: "Inter", fontSize: 11, color: "var(--ink-3)", marginTop: 12, lineHeight: 1.6 }}>
+              calendaria.app<br />
+              hola@calendaria.app
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid-2" style={{ marginTop: 24 }}>
+        {/* Notificación WhatsApp */}
+        <div className="app-card" style={{ background: "#ECE2D2", aspectRatio: "1.8/1", padding: 28 }}>
+          <div className="label">Mensaje del agente</div>
+          <div style={{ background: "#FFFFFF", borderRadius: 14, padding: "12px 16px", maxWidth: 320, boxShadow: "0 1px 1px rgba(0,0,0,0.05)" }}>
+            <div style={{ fontFamily: "Inter", fontSize: 14, color: "var(--ink)", lineHeight: 1.45 }}>
+              ¡Hola! Soy la asistente de Taller La Rueda. ¿Querés agendar un service o pasar a retirar tu bici? Decime qué necesitás 🚲
+            </div>
+            <div style={{ fontFamily: "JetBrains Mono", fontSize: 10, color: "var(--ink-3)", marginTop: 6, textAlign: "right" }}>14:32</div>
+          </div>
+        </div>
+
+        {/* Hero web */}
+        <div className="app-card" style={{ background: "var(--ink)", aspectRatio: "1.8/1", color: "#F6F1EA", padding: 36 }}>
+          <Lockup size={22} gap={10} color="#F6F1EA" markColor="#E89876" />
+          <div>
+            <div style={{ fontFamily: "Fraunces", fontStyle: "italic", fontSize: 13, color: "rgba(246,241,234,0.6)", letterSpacing: "0.04em" }}>tu trabajo es atender</div>
+            <div style={{ fontFamily: "Fraunces", fontWeight: 500, fontSize: 38, lineHeight: 1.05, letterSpacing: "-0.025em", marginTop: 4 }}>el nuestro, agendar.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* USO INCORRECTO */}
+    <div className="section">
+      <h2>Lo que no hacemos</h2>
+      <div className="sub">Reglas para mantener la marca consistente.</div>
+      <div className="grid-4">
+        {[
+          { title: "No deformar", svg: <Isotype size={80} /> , wrong: <svg width="80" height="60" viewBox="0 0 64 48"><path d="M50 16 C50 10, 42 6, 32 6 C18 6, 8 14, 8 24 C8 34, 18 42, 32 42 C42 42, 50 38, 53 32" stroke="#C26A4A" strokeWidth="5.5" strokeLinecap="round" fill="none" /><circle cx="50" cy="16" r="4.2" fill="#C26A4A" /></svg> },
+          { title: "No rotar", correct: <Isotype size={80} />, rotate: true },
+          { title: "No agregar sombras", correct: <Isotype size={80} />, shadow: true },
+          { title: "Sin gradientes saturados", correct: <Isotype size={80} />, gradient: true },
+        ].map((r, i) => (
+          <div key={i} className="card" style={{ textAlign: "center", padding: 24, position: "relative" }}>
+            <div style={{ height: 100, display: "flex", alignItems: "center", justifyContent: "center", filter: r.shadow ? "drop-shadow(0 6px 12px rgba(194,106,74,0.6))" : "none", transform: r.rotate ? "rotate(20deg)" : "none" }}>
+              {r.gradient ? (
+                <svg width="80" height="80" viewBox="0 0 64 64">
+                  <defs><linearGradient id={`g${i}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FF00AA" /><stop offset="1" stopColor="#00AAFF" /></linearGradient></defs>
+                  <path d="M50 22 C50 14, 42 8, 32 8 C18 8, 8 18, 8 32 C8 46, 18 56, 32 56 C42 56, 50 50, 53 42" stroke={`url(#g${i})`} strokeWidth="5.5" strokeLinecap="round" fill="none" />
+                  <circle cx="50" cy="22" r="4.2" fill={`url(#g${i})`} />
+                </svg>
+              ) : r.wrong || r.correct}
+            </div>
+            <div style={{ position: "absolute", top: 12, right: 12, color: "var(--rose)", fontFamily: "JetBrains Mono", fontSize: 16, fontWeight: 700 }}>✗</div>
+            <div className="label" style={{ marginTop: 12 }}>{r.title}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div style={{ marginTop: 120, paddingTop: 32, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Lockup size={20} gap={8} />
+      <div className="label">Sistema de marca · v1.0 · Buenos Aires, 2026</div>
+    </div>
+  </div>
+);
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Page />);
+</script>
+</body>
+</html>

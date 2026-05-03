@@ -89,12 +89,18 @@ export default function DashboardLayout({
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [userName, setUserName] = useState('Dr. Diego');
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     const supabase = createSupabaseBrowser();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user?.email) setUserEmail(data.user.email);
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      setUserEmail(data.user.email ?? null);
+      const res = await fetch('/api/data/configuracion');
+      if (res.ok) {
+        const prof = await res.json();
+        if (prof.nombre) setUserName(prof.nombre);
+      }
     });
   }, []);
 
@@ -160,14 +166,14 @@ export default function DashboardLayout({
         <div className="mt-auto pt-4" style={{ borderTop: '1px solid var(--line)' }}>
           <div className="flex items-center gap-3 px-2 py-2">
             <div className="avatar avatar-sm" style={{ background: '#C9B89A', fontSize: 12, flexShrink: 0 }}>
-              {(userEmail ?? userName).charAt(0).toUpperCase()}
+              {(userName || userEmail || 'U').charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate" style={{ color: 'var(--ink)', margin: 0 }}>
-                {userEmail ? userEmail.split('@')[0] : userName}
+                {userName || userEmail?.split('@')[0] || '—'}
               </p>
               <p className="text-xs truncate" style={{ color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', margin: 0 }}>
-                {userEmail ?? 'Demo'}
+                {userEmail ?? ''}
               </p>
             </div>
             <button

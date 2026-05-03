@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, PROFESIONAL_ID } from '@/lib/supabase-admin';
+import { supabaseAdmin, getProfesionalId } from '@/lib/supabase-admin';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -15,10 +15,11 @@ export async function GET(req: Request) {
     return NextResponse.json(data);
   }
 
+  const profesionalId = await getProfesionalId();
   const { data, error } = await supabaseAdmin
     .from('conversaciones')
     .select('*, pacientes(nombre)')
-    .eq('profesional_id', PROFESIONAL_ID)
+    .eq('profesional_id', profesionalId)
     .order('ultimo_mensaje_at', { ascending: false })
     .limit(50);
 

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="64" viewBox="0 0 320 64" fill="none" aria-label="Calendaria">
+  <path d="M50 22 C50 14, 42 8, 32 8 C18 8, 8 18, 8 32 C8 46, 18 56, 32 56 C42 56, 50 50, 53 42" stroke="#C26A4A" stroke-width="5.5" stroke-linecap="round" fill="none"></path>
+  <circle cx="50" cy="22" r="4.2" fill="#C26A4A"></circle>
+  <text x="80" y="44" font-family="Fraunces, Georgia, serif" font-weight="500" font-size="44" letter-spacing="-1.5" fill="#2C241D">calendaria</text>
+</svg>

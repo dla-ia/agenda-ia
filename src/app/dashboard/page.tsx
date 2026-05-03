@@ -1,4 +1,4 @@
-import { supabaseAdmin, PROFESIONAL_ID } from '@/lib/supabase-admin';
+import { supabaseAdmin, getProfesionalId } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,28 +39,26 @@ const estadoBadge: Record<string, string> = {
 
 /* ── Fetch functions (server-side) ─────────────────────── */
 
-async function fetchMetrics() {
+async function fetchMetrics(profesionalId: string) {
   const ahora = new Date();
   const inicioSemana = startOf('week', ahora).toISOString();
-  const inicioDia = startOf('day', ahora).toISOString();
-  const finDia = new Date(ahora.setHours(23, 59, 59, 999)).toISOString();
   const inicioMes = startOf('month', new Date()).toISOString();
 
   const [{ count: turnosSemana }, { count: totalPacientes }, { data: pagosData }, { count: noShows }, { count: turnosTotalesMes }] = await Promise.all([
     supabaseAdmin.from('turnos').select('*', { count: 'exact', head: true })
-      .eq('profesional_id', PROFESIONAL_ID)
+      .eq('profesional_id', profesionalId)
       .gte('fecha_hora', inicioSemana)
       .not('estado', 'eq', 'cancelado'),
     supabaseAdmin.from('pacientes').select('*', { count: 'exact', head: true })
-      .eq('profesional_id', PROFESIONAL_ID),
+      .eq('profesional_id', profesionalId),
     supabaseAdmin.from('pagos').select('monto')
       .gte('created_at', inicioMes),
     supabaseAdmin.from('turnos').select('*', { count: 'exact', head: true })
-      .eq('profesional_id', PROFESIONAL_ID)
+      .eq('profesional_id', profesionalId)
       .gte('fecha_hora', inicioMes)
       .eq('estado', 'no_asistio'),
     supabaseAdmin.from('turnos').select('*', { count: 'exact', head: true })
-      .eq('profesional_id', PROFESIONAL_ID)
+      .eq('profesional_id', profesionalId)
       .gte('fecha_hora', inicioMes)
       .not('estado', 'eq', 'cancelado'),
   ]);
@@ -76,14 +74,14 @@ async function fetchMetrics() {
   };
 }
 
-async function fetchTurnosHoy() {
+async function fetchTurnosHoy(profesionalId: string) {
   const inicio = startOf('day').toISOString();
   const fin = new Date(); fin.setHours(23, 59, 59, 999);
 
   const { data } = await supabaseAdmin
     .from('turnos')
     .select('id, fecha_hora, estado, pacientes(nombre)')
-    .eq('profesional_id', PROFESIONAL_ID)
+    .eq('profesional_id', profesionalId)
     .gte('fecha_hora', inicio)
     .lte('fecha_hora', fin.toISOString())
     .order('fecha_hora', { ascending: true })
@@ -92,10 +90,11 @@ async function fetchTurnosHoy() {
   return data || [];
 }
 
-async function fetchActividad() {
+async function fetchActividad(profesionalId: string) {
   const { data } = await supabaseAdmin
     .from('mensajes')
-    .select('id, contenido, direccion, created_at, conversaciones(telefono, paciente_id, pacientes(nombre))')
+    .select('id, contenido, direccion, created_at, conversaciones!inner(telefono, paciente_id, profesional_id, pacientes(nombre))')
+    .eq('conversaciones.profesional_id', profesionalId)
     .order('created_at', { ascending: false })
     .limit(8);
 
@@ -105,10 +104,11 @@ async function fetchActividad() {
 /* ── Page (Server Component) ───────────────────────────── */
 
 export default async function DashboardPage() {
+  const profesionalId = await getProfesionalId();
   const [metrics, turnosHoy, actividad] = await Promise.all([
-    fetchMetrics(),
-    fetchTurnosHoy(),
-    fetchActividad(),
+    fetchMetrics(profesionalId),
+    fetchTurnosHoy(profesionalId),
+    fetchActividad(profesionalId),
   ]);
 
   const señasFormateadas = metrics.senas >= 1000

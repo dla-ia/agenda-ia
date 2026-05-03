@@ -1,0 +1,277 @@
+/* AgendaIA — cálido y humano, tonos tierra */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Tonos tierra cálidos */
+  --bg: #F6F1EA;            /* hueso cálido */
+  --bg-2: #EFE6DA;          /* arena */
+  --bg-3: #E5D7C5;          /* arcilla suave */
+  --surface: #FBF7F1;       /* tarjeta */
+  --surface-2: #FFFFFF;
+  --ink: #2C241D;           /* tinta cálida */
+  --ink-2: #5A4E42;         /* secundaria */
+  --ink-3: #8C7E6F;         /* terciaria */
+  --line: #DDD1C0;          /* línea suave */
+  --line-2: #C9BBA6;
+
+  /* Acentos */
+  --terracotta: #C26A4A;    /* primario */
+  --terracotta-2: #A95838;
+  --olive: #6B7148;         /* secundario, salud */
+  --ochre: #C99A3F;         /* warning suave */
+  --rose: #B86A6A;          /* error suave */
+  --sage: #8AA176;          /* success suave */
+
+  /* WhatsApp-ish (genérico, no copiamos paleta exacta) */
+  --chat-bg: #ECE2D2;
+  --chat-in: #FFFFFF;
+  --chat-out: #DCE9C8;      /* verde oliva muy claro */
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 1px 2px rgba(58, 41, 26, 0.06);
+  --shadow: 0 2px 8px rgba(58, 41, 26, 0.08), 0 1px 2px rgba(58, 41, 26, 0.04);
+  --shadow-lg: 0 12px 32px rgba(58, 41, 26, 0.12), 0 2px 6px rgba(58, 41, 26, 0.05);
+
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--bg);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button { font-family: inherit; cursor: pointer; }
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 14px; font-weight: 500;
+  border: 1px solid transparent;
+  background: var(--surface-2);
+  color: var(--ink);
+  border-color: var(--line);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--bg-2); border-color: var(--line-2); }
+.btn-primary {
+  background: var(--terracotta);
+  color: #FFF8F0;
+  border-color: var(--terracotta-2);
+}
+.btn-primary:hover { background: var(--terracotta-2); }
+.btn-ghost { background: transparent; border-color: transparent; }
+.btn-ghost:hover { background: var(--bg-2); }
+.btn-sm { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+
+/* ===== Cards ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== Badges ===== */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px; font-weight: 500;
+  background: var(--bg-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  letter-spacing: 0.01em;
+}
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+.badge-success { background: #E8EFDC; color: #4A5530; border-color: #CDD9B5; }
+.badge-warn { background: #F5E9CD; color: #7A5C20; border-color: #E5D2A0; }
+.badge-error { background: #F5DCDC; color: #7C3939; border-color: #E5BFBF; }
+.badge-info { background: #E9DCD2; color: #6B4A36; border-color: #D6C2B0; }
+.badge-ai { background: linear-gradient(135deg, #F0E4D2 0%, #E8D9C4 100%); color: #6B4A36; border-color: #D6C2B0; }
+
+/* ===== Avatar ===== */
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--bg-3); color: var(--ink-2);
+  font-weight: 600; font-size: 13px;
+  font-family: var(--font-serif);
+  letter-spacing: 0.02em;
+  border: 1px solid var(--line);
+}
+.avatar-lg { width: 48px; height: 48px; font-size: 16px; }
+.avatar-sm { width: 28px; height: 28px; font-size: 11px; }
+
+/* ===== Type ===== */
+.serif { font-family: var(--font-serif); font-optical-sizing: auto; }
+.mono { font-family: var(--font-mono); }
+.h1 { font-family: var(--font-serif); font-weight: 500; font-size: 32px; line-height: 1.15; letter-spacing: -0.02em; margin: 0; }
+.h2 { font-family: var(--font-serif); font-weight: 500; font-size: 24px; line-height: 1.2; letter-spacing: -0.015em; margin: 0; }
+.h3 { font-family: var(--font-serif); font-weight: 500; font-size: 19px; line-height: 1.25; letter-spacing: -0.01em; margin: 0; }
+.eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.muted { color: var(--ink-3); }
+.dim { color: var(--ink-2); }
+
+/* ===== Scroll ===== */
+.scroll-styled::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-styled::-webkit-scrollbar-track { background: transparent; }
+.scroll-styled::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+.scroll-styled::-webkit-scrollbar-thumb:hover { background: var(--line-2); }
+
+/* ===== Sidebar ===== */
+.sidebar {
+  background: var(--bg-2);
+  border-right: 1px solid var(--line);
+  padding: 24px 14px;
+  width: 240px;
+  flex-shrink: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  color: var(--ink-2);
+  font-size: 14px; font-weight: 450;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.nav-item:hover { background: var(--bg-3); color: var(--ink); }
+.nav-item.active {
+  background: var(--surface-2);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  font-weight: 500;
+}
+.nav-item .count {
+  margin-left: auto;
+  font-size: 11px;
+  background: var(--bg-3);
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: var(--ink-2);
+}
+.nav-item.active .count { background: var(--bg-2); }
+
+/* ===== Chat (WhatsApp-ish) ===== */
+.chat-bubble {
+  max-width: 78%;
+  padding: 7px 11px 8px;
+  border-radius: 8px;
+  font-size: 14.5px;
+  line-height: 1.38;
+  position: relative;
+  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+  word-wrap: break-word;
+}
+.chat-in { background: var(--chat-in); color: #111B21; align-self: flex-start; border-top-left-radius: 2px; }
+.chat-out { background: var(--chat-out); color: #111B21; align-self: flex-end; border-top-right-radius: 2px; }
+.chat-meta {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10.5px; color: #667781;
+  float: right; margin-left: 8px; margin-top: 4px;
+  position: relative; bottom: -3px;
+}
+.chat-time { font-variant-numeric: tabular-nums; }
+
+/* Subtle bg pattern for chat */
+.chat-area {
+  background: var(--chat-bg);
+  background-image:
+    radial-gradient(circle at 25% 15%, rgba(255,255,255,0.4) 1px, transparent 1px),
+    radial-gradient(circle at 75% 65%, rgba(0,0,0,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* AI thinking pill */
+.ai-thinking {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  background: var(--bg);
+  border: 1px dashed var(--line-2);
+  padding: 6px 10px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Stripe placeholder */
+.stripes {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--bg-3) 0 8px,
+    var(--bg-2) 8px 16px
+  );
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3); font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.05em;
+}
+
+/* tabular */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* hover row */
+.row-hover { transition: background 0.12s ease; }
+.row-hover:hover { background: var(--bg-2); }
+
+/* divider */
+.divider { height: 1px; background: var(--line); border: 0; margin: 0; }
+
+/* Form */
+.input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 14px;
+  font-family: inherit;
+}
+.input:focus { outline: none; border-color: var(--terracotta); box-shadow: 0 0 0 3px rgba(194, 106, 74, 0.12); }
+
+label.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--ink-2); font-weight: 500; }
+
+/* tag */
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; padding: 3px 8px;
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 999px; color: var(--ink-2);
+  font-family: var(--font-mono);
+}
+
+/* number */
+.metric-number {
+  font-family: var(--font-serif);
+  font-size: 38px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* tiny stat */
+.delta-up { color: #5A6F35; }
+.delta-down { color: #A05050; }

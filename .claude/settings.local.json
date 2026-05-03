@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($body = \"Body=Hola+de+nuevo&From=whatsapp%3A%2B5491100000001\"; $r = Invoke-WebRequest -Uri \"http://localhost:3000/api/webhooks/twilio\" -Method POST -Body $body -ContentType \"application/x-www-form-urlencoded\" -TimeoutSec 30; [System.Text.Encoding]::UTF8.GetString\\($r.RawContentStream.ToArray\\(\\)\\))",
+      "Bash(node -e \"const s = 'psicología clínica'.toLowerCase\\(\\).normalize\\('NFD'\\).replace\\(/[̀-ͯ]/g, ''\\).replace\\(/[^a-z0-9\\\\s-]/g, ''\\).trim\\(\\).replace\\(/\\\\s+/g, '-'\\); console.log\\(s\\)\")",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin, PROFESIONAL_ID } from '@/lib/supabase-admin';
+import { supabaseAdmin, getProfesionalId } from '@/lib/supabase-admin';
 
 const DEFAULTS: Record<string, string> = {
   agente_nombre: 'Aurora',
@@ -17,15 +17,16 @@ const DEFAULTS: Record<string, string> = {
 };
 
 export async function GET() {
+  const id = await getProfesionalId();
   const [configResult, profResult] = await Promise.all([
     supabaseAdmin
       .from('configuraciones')
       .select('clave, valor')
-      .eq('profesional_id', PROFESIONAL_ID),
+      .eq('profesional_id', id),
     supabaseAdmin
       .from('profesionales')
       .select('horario_inicio, horario_fin, dias_laborables')
-      .eq('id', PROFESIONAL_ID)
+      .eq('id', id)
       .single(),
   ]);
 
@@ -45,6 +46,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const id = await getProfesionalId();
   const body: Record<string, string> = await req.json();
 
   // Sync horarios to profesionales table so the agent uses updated schedule
@@ -70,7 +72,7 @@ export async function POST(req: Request) {
             dias_laborables:  diasActivos,
             updated_at:       new Date().toISOString(),
           })
-          .eq('id', PROFESIONAL_ID);
+          .eq('id', id);
       }
     } catch {}
   }
@@ -78,7 +80,7 @@ export async function POST(req: Request) {
   const rows = Object.entries(body)
     .filter(([k]) => !k.startsWith('_'))
     .map(([clave, valor]) => ({
-      profesional_id: PROFESIONAL_ID,
+      profesional_id: id,
       clave,
       valor: String(valor),
       updated_at: new Date().toISOString(),
