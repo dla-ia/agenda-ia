@@ -158,9 +158,10 @@ function NuevoTurnoModal({ onClose, onCreate, initialDate, initialHora }: {
   const [hora, setHora]           = useState(initialHora ?? '09:00');
   const [duracion, setDuracion]   = useState('50');
   const [notas, setNotas]         = useState('');
-  const [saving, setSaving]       = useState(false);
-  const [errorMsg, setErrorMsg]   = useState('');
-  const [pacientes, setPacientes] = useState<{ id: string; nombre: string }[]>([]);
+  const [saving, setSaving]         = useState(false);
+  const [errorMsg, setErrorMsg]     = useState('');
+  const [mpLink, setMpLink]         = useState('');
+  const [pacientes, setPacientes]   = useState<{ id: string; nombre: string }[]>([]);
   const [sugerencias, setSugerencias] = useState<{ id: string; nombre: string }[]>([]);
 
   useEffect(() => {
@@ -191,6 +192,11 @@ function NuevoTurnoModal({ onClose, onCreate, initialDate, initialHora }: {
     const json = await res.json();
     if (!res.ok) { setErrorMsg(json.error ?? 'Error al crear turno'); setSaving(false); return; }
     onCreate(json.turno);
+    if (json.mp_init_point) {
+      setMpLink(json.mp_init_point);
+      setSaving(false);
+      return; // no cerrar — mostrar botón de pago
+    }
     onClose();
   }
 
@@ -267,9 +273,31 @@ function NuevoTurnoModal({ onClose, onCreate, initialDate, initialHora }: {
             </p>
           )}
 
-          <button type="submit" className="btn btn-primary" disabled={saving} style={{ width: '100%', justifyContent: 'center', padding: '11px 0', marginTop: 4 }}>
-            {saving ? 'Creando turno…' : 'Crear turno'}
-          </button>
+          {mpLink ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+              <p style={{ fontSize: 12, color: '#4E6B3A', margin: 0, padding: '8px 12px', background: 'rgba(138,161,118,0.12)', borderRadius: 6, border: '1px solid rgba(138,161,118,0.3)' }}>
+                ✓ Turno creado. Podés enviarle el link de pago al paciente.
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a
+                  href={mpLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary btn-sm"
+                  style={{ flex: 1, textAlign: 'center', padding: '10px 0' }}
+                >
+                  Cobrar seña
+                </a>
+                <button type="button" className="btn btn-sm" style={{ flex: 1, padding: '10px 0' }} onClick={onClose}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="submit" className="btn btn-primary" disabled={saving} style={{ width: '100%', justifyContent: 'center', padding: '11px 0', marginTop: 4 }}>
+              {saving ? 'Creando turno…' : 'Crear turno'}
+            </button>
+          )}
         </form>
       </div>
     </div>
