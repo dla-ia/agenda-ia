@@ -24,6 +24,13 @@
 | 12 | 2026-05-03 | — | UI | Badge "3" hardcodeado en Conversaciones en sidebar — mostraba información falsa | `dashboard-layout.tsx` | ✅ |
 | 13 | 2026-05-03 | — | Lógica | handleLogout usaba router.push+refresh — mismo bug que registro, podía dejar sesión colgada | `dashboard-layout.tsx` | ✅ |
 | 14 | 2026-05-03 | — | Seguridad | middleware: /auth en PUBLIC_PATHS hacía que usuarios logueados nunca fueran redirigidos a /dashboard | `middleware.ts` | ✅ |
+| 15 | 2026-05-03 | — | Seguridad | PATCH /api/data/agenda no verificaba ownership del turno — cualquier profesional podía cambiar estado de turnos ajenos | `api/data/agenda/route.ts` | ✅ |
+| 16 | 2026-05-03 | — | Seguridad | GET /api/data/pacientes?id= y DELETE no filtraban por profesional_id — cross-tenant data leak posible | `api/data/pacientes/route.ts` | ✅ |
+| 17 | 2026-05-03 | — | Seguridad | GET /api/data/conversaciones?id= devolvía mensajes sin verificar ownership — cualquier id de conversación era accesible | `api/data/conversaciones/route.ts` | ✅ |
+| 18 | 2026-05-03 | — | Datos | /api/webhooks/n8n usaba columna `nombre_profesional` que no existe — la columna real es `nombre` | `api/webhooks/n8n/route.ts` | ✅ |
+| 19 | 2026-05-03 | — | Lógica | api/webhooks/n8n y cron/recordatorios enviaban Twilio From sin prefijo `whatsapp:` — mensajes fallaban silenciosamente | `api/webhooks/n8n/route.ts` · `api/cron/recordatorios/route.ts` | ✅ |
+| 20 | 2026-05-03 | — | Lógica | onboarding Step3 usaba router.push('/dashboard') — mismo bug post-auth que en login/registro | `onboarding/page.tsx` | ✅ |
+| 21 | 2026-05-03 | — | UX | /agenda scrolleaba siempre a top=0 al montar — ahora scrollea al horario actual | `agenda/page.tsx` | ✅ |
 
 ---
 
@@ -48,3 +55,6 @@
 - **Twilio FROM:** siempre incluir prefijo `whatsapp:` en el número From
 - **router.push + router.refresh en App Router:** se cancelan mutuamente en Next.js App Router — usar `window.location.href` para navegaciones post-auth (login, registro, logout)
 - **PUBLIC_PATHS en middleware:** agregar rutas de auth explícitamente como AUTH_PATHS separadas de rutas siempre públicas — el check "logueado → redirect" no corre si la ruta es PUBLIC
+- **Multi-tenant ownership en PATCH/DELETE:** siempre agregar `.eq('profesional_id', profesionalId)` en UPDATE y DELETE — sin eso cualquier profesional logueado puede mutar datos ajenos
+- **Nombre de columna en JOIN:** verificar los nombres reales de columna antes de hacer `.select('tabla(columna)')` — `nombre_profesional` vs `nombre` causa error silencioso en runtime
+- **Twilio prefijo whatsapp::** normalizar siempre con `rawFrom.startsWith('whatsapp:') ? rawFrom : \`whatsapp:${rawFrom}\`` — no asumir que la variable de entorno lo incluye

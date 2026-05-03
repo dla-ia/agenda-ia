@@ -49,6 +49,15 @@
 
 ---
 
+## 🟢 Completadas — Sesión 03/05/2026 (autónoma loop, 30 min)
+- [x] Seguridad: PATCH /agenda agrega filtro `profesional_id` en UPDATE (ownership)
+- [x] Seguridad: GET + DELETE /pacientes filtran por `profesional_id` (cross-tenant leak cerrado)
+- [x] Seguridad: GET /conversaciones?id= verifica ownership antes de devolver mensajes
+- [x] Datos: /api/webhooks/n8n — columna `nombre_profesional` → `nombre` (nombre correcto en tabla)
+- [x] Lógica: Twilio `From` normalizado con prefijo `whatsapp:` en n8n y cron/recordatorios
+- [x] Lógica: onboarding Step3 `router.push('/dashboard')` → `window.location.href` (fix post-auth)
+- [x] UX: /agenda scroll inicial al horario actual en lugar de top=0
+
 ## 🟢 Completadas — Sesión 03/05/2026 (autónoma, sin Diego)
 - [x] `/configuracion`: nueva página (perfil, cuenta, integraciones) + API route GET+PATCH
 - [x] `PROFESIONAL_ID` hardcodeado eliminado de `/api/data/agente`, `/api/data/conversaciones`, `dashboard/page.tsx`

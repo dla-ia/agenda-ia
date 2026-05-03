@@ -7,11 +7,11 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 02/05/2026 (sesión larga — día siguiente al 03/05)
-**Sesión:** Auth real + recordatorios GitHub Actions + mejoras agenda/pacientes + sistema de correcciones
+**Fecha:** 03/05/2026 (sesión autónoma loop, 30 min)
+**Sesión:** Auditoría de seguridad multi-tenant + fixes de producción en 7 archivos
 
 ### ¿Dónde quedamos?
-Auth real activado en producción. Panel con eliminación de pacientes, click en calendario para crear turnos y validación de solapamiento. Recordatorios automáticos vía GitHub Actions (cron horario). Sistema `corrección:` para registrar bugs de forma eficiente.
+7 vulnerabilidades de seguridad multi-tenant cerradas: PATCH/DELETE de agenda y pacientes ahora verifican ownership (`profesional_id`), conversaciones verifica ownership antes de devolver mensajes, n8n webhook tenía columna incorrecta (`nombre_profesional` → `nombre`) y faltaba prefijo `whatsapp:` en Twilio From (igual en cron/recordatorios). Onboarding Step3 corregido con `window.location.href`. /agenda ahora scrollea al horario actual.
 
 ### ¿Qué funciona?
 - **App en producción:** https://calendaria.com.ar ✅
@@ -69,10 +69,10 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 - **Twilio MCP:** requiere reinicio de Claude Code
 
 ### El próximo paso concreto es
-> 1. **Probar registro nuevo profesional** en calendaria.com.ar — registrarse, onboarding, usar el panel
+> 1. **Probar registro nuevo profesional** en calendaria.com.ar — registrarse, onboarding, usar el panel (todos los bugs conocidos corregidos — está listo para probar)
 > 2. **MercadoPago:** Diego pega su `MERCADOPAGO_ACCESS_TOKEN` (credencial de test) → integro el link de seña
 > 3. **Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY` → integro email de confirmación
-> 4. **Protocolo `corrección:`** — cualquier bug que aparezca al probar, dispararlo con ese trigger
+> 4. **WhatsApp producción:** salir del sandbox Twilio (requiere aprobación Meta WhatsApp Business)
 
 ---
 
@@ -89,3 +89,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 | DNS live, slug en onboarding, post-DNS completo | Auth real + /agenda modal |
 | 03/05/2026 noche | Brand system, /agenda completa, /agente horarios, webhook n8n | Auth real + Fase 3 |
 | 02/05/2026+ | Auth real, GitHub Actions cron, eliminar paciente, click calendario, solapamiento, correccion.md | Probar registro + MercadoPago + Resend |
+| 03/05/2026 loop | Auditoría multi-tenant: 7 fixes seguridad en agenda/pacientes/conversaciones/n8n/cron/onboarding | Probar registro nuevo usuario |
