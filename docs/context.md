@@ -7,11 +7,11 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 03/05/2026 (sesión autónoma — error boundaries + skeletons + UX landing + /w/[slug] mejorado)
-**Sesión:** Error boundaries globales, loading skeletons para rutas lentas, botón copiar link en /configuracion, página intermedia /w/[slug], FAQ landing y fix CTAs.
+**Fecha:** 03/05/2026 (sesión autónoma loop 7 — pagos, system prompt Aurora, email pacientes, CSV, métricas, RLS)
+**Sesión:** /pagos nueva página, Aurora mejorada (fuera de horario + nombre profesional), email opcional en pacientes, export CSV, tasa de confirmación en dashboard, próximo turno del día, turnos del día en modal de agenda, auditoría RLS.
 
 ### ¿Dónde quedamos?
-6 tareas completadas: (1) Error boundaries: `error.tsx`, `global-error.tsx`, `dashboard/error.tsx`. (2) Loading skeletons: conversaciones, pacientes, agenda. (3) Botón "Copiar link" en /configuracion con feedback visual 2s. (4) `/w/[slug]` reemplazado por página intermedia HTML con nombre del profesional, spinner y auto-redirect 2s; 404 amigable si slug no existe. (5) Landing CTAs corregidos a `/auth`. (6) Sección FAQ con 4 preguntas expandibles + link demo en hero.
+8 tareas completadas: (1) `/pagos`: historial de señas con métricas y tabla ordenada. (2) Aurora system prompt: nombre del profesional, manejo fuera de horario, crisis protocol reforzado. (3) Email opcional en modal "+ Paciente" y guardado en Supabase. (4) Botón "↓ CSV" en /pacientes (genera cliente-side, sin deps). (5) Dashboard: métrica "tasa de confirmación" + banner "próximo turno del día". (6) Agenda modal: resumen turnos del día seleccionado en footer. (7) RLS write policies: migration SQL en supabase/migrations/ (INSERT/UPDATE/DELETE para todas las tablas). (8) Sidebar: link a /pagos.
 
 ### ¿Qué funciona?
 - **App en producción:** https://calendaria.com.ar ✅
@@ -25,16 +25,20 @@
 - **/agenda:** click en espacio vacío del calendario → modal con fecha/hora pre-cargada; empty state overlay
 - **/agenda:** validación de solapamiento en POST (409 con nombre del paciente conflictivo)
 - **/agenda modal:** si MERCADOPAGO_ACCESS_TOKEN está seteado → muestra botón "Cobrar seña" post-creación
+- **/agenda modal:** resumen de turnos del día seleccionado en footer del modal "+ Turno"
 - **/agenda mobile:** modales fluid (`min(Xpx, calc(100vw - 32px))`), grid con minmax, svh
 - **/pacientes:** botón "Eliminar" con confirmación inline (cancela turnos futuros automáticamente)
+- **/pacientes modal:** campo email opcional (para Resend), guardado en Supabase
+- **/pacientes:** botón "↓ CSV" descarga lista de pacientes (nombre, tel, email, fecha alta, turnos)
 - **/agente tab "Precios":** tarifas editables (label/precio/duración), agregar/quitar filas, persisten en `agente_tarifas`
 - **/agente tab "Integraciones":** estados reales — WhatsApp pendiente, Calendar conectado
+- **/pagos:** nueva página con historial de señas, métricas (total cobrado, pendientes), tabla ordenada por fecha
 - **Error boundaries:** `error.tsx` + `global-error.tsx` + `dashboard/error.tsx` — mensajes amigables, botón reset, sin stack traces en prod
 - **Loading skeletons:** `conversaciones/loading.tsx`, `pacientes/loading.tsx`, `agenda/loading.tsx` — shimmer mientras carga SSR
 - **/configuracion:** botón "Copiar link" con feedback "¡Copiado!" 2s junto al slug
 - **/w/[slug]:** página intermedia con nombre del profesional, spinner y auto-redirect 2s a WhatsApp; 404 amigable si slug no existe
 - **Landing:** CTAs corregidos a `/auth`, sección FAQ expandible, link demo en hero
-- **/dashboard:** loading.tsx con skeleton shimmer mientras carga SSR
+- **/dashboard:** loading.tsx con skeleton shimmer mientras carga SSR; tasa de confirmación; banner "próximo turno del día"
 - **404 personalizada:** not-found.tsx con design tokens, redirige a /dashboard si logueado
 - **Metadata + OG tags:** título, description, openGraph, twitter card — en todas las rutas
 - **MercadoPago webhook:** `/api/webhooks/mercadopago` — procesa IPN, actualiza turno a 'confirmado'
@@ -42,8 +46,12 @@
 - **Brand system:** Lockup/Isotype/Wordmark, app icon, next/font/google activo
 - **WhatsApp multi-tenant:** `/w/slug` → Aurora del profesional correcto
 - **Agente Aurora:** system prompt dinámico, tool use (get_disponibilidad, crear_turno, cancelar, ver)
+- **Aurora:** carga nombre del profesional + horario + días laborables desde DB → system prompt contextualizado
+- **Aurora:** fuera de horario laboral → avisa y puede registrar turnos futuros igual
+- **Aurora:** crisis protocol mejorado — líneas exactas, no sigue flujo de agenda post-crisis
 - **Google Calendar:** evento creado al confirmar turno (best-effort)
 - **`docs/correccion.md`:** sistema de registro de bugs con protocolo `corrección:`
+- **RLS:** `supabase/migrations/20260503_rls_write_policies.sql` — políticas INSERT/UPDATE/DELETE para todas las tablas (pendiente ejecutar en Supabase Cloud)
 
 ### Arquitectura WhatsApp multi-tenant
 ```
@@ -77,6 +85,7 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 - **gh CLI instalado:** `C:\Users\DIEGO\AppData\Local\gh-cli\bin\gh.exe` (autenticado vía Credential Manager)
 
 ### ¿Qué está pendiente?
+- **Ejecutar migración RLS:** `supabase/migrations/20260503_rls_write_policies.sql` — copiar y ejecutar en Supabase SQL editor
 - **Probar flujo registro completo:** registrarse como nuevo profesional → onboarding → dashboard (no testeado post auth-real)
 - **MercadoPago activo:** código listo, solo falta pegar `MERCADOPAGO_ACCESS_TOKEN` en Vercel (cuenta de Diego)
 - **Resend activo:** código listo, solo falta crear cuenta free en resend.com + pegar `RESEND_API_KEY` en Vercel
@@ -85,10 +94,10 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 - **Twilio MCP:** requiere reinicio de Claude Code
 
 ### El próximo paso concreto es
-> 1. **Activar MercadoPago:** Diego pega `MERCADOPAGO_ACCESS_TOKEN` en Vercel → al crear un turno aparece botón "Cobrar seña"
-> 2. **Activar Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY` → al crear turno el paciente recibe email
-> 3. **Probar registro nuevo profesional** en calendaria.com.ar — registrarse, onboarding, usar el panel
-> 4. **WhatsApp producción:** salir del sandbox Twilio (requiere aprobación Meta WhatsApp Business)
+> 1. **Ejecutar migración RLS:** abrir Supabase SQL editor → copiar y ejecutar `supabase/migrations/20260503_rls_write_policies.sql`
+> 2. **Activar MercadoPago:** Diego pega `MERCADOPAGO_ACCESS_TOKEN` en Vercel → al crear un turno aparece botón "Cobrar seña"
+> 3. **Activar Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY` → al crear turno el paciente recibe email
+> 4. **Probar registro nuevo profesional** en calendaria.com.ar — registrarse, onboarding, usar el panel
 
 ---
 
@@ -111,3 +120,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 loop 4 | Tomar control conversaciones, código MP+Resend (activados por env var), 404, slug normalization | Pegar credenciales MP+Resend + probar registro |
 | 03/05/2026 loop 5 | Webhook MP implementado, OG tags, mobile responsive (agenda+conversaciones), Twilio spam fix | Pegar credenciales MP+Resend + probar registro |
 | 03/05/2026 loop 6 | Error boundaries, loading skeletons (conversaciones/pacientes/agenda), copiar link en /configuracion, /w/slug mejorado, FAQ + CTAs landing | Pegar credenciales MP+Resend + probar registro |
+| 03/05/2026 loop 7 | /pagos, Aurora mejorada (out-of-hours+nombre prof+crisis), email pacientes, CSV export, dashboard metrics (confirmación+próximo turno), agenda modal turnos del día, RLS write policies migration | Ejecutar migración RLS + activar MP+Resend |

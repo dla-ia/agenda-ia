@@ -62,6 +62,17 @@
 
 ---
 
+## 🟢 Completadas — Sesión loop 7 (03/05/2026 autónoma — 1h)
+- [x] **Auditoría RLS** — `supabase/migrations/20260503_rls_write_policies.sql`: INSERT/UPDATE/DELETE para profesionales, pacientes, turnos, conversaciones, mensajes, configuraciones, lista_espera (solo SELECT tenían antes). Pendiente ejecutar en Supabase SQL editor.
+- [x] `/pagos` — nueva página SSR con historial de señas, métricas (total cobrado, pendientes, registros) y tabla ordenada por fecha
+- [x] Sidebar — link a `/pagos` con ícono de tarjeta de crédito
+- [x] **Aurora system prompt** — nombre del profesional cargado de DB, manejo explícito de fuera de horario, crisis protocol reforzado (líneas exactas, no continúa flujo de agenda)
+- [x] **Aurora `loadAgenteConfig`** — carga `nombre`, `horario_inicio`, `horario_fin`, `dias_laborables` del profesional en paralelo
+- [x] `/pacientes` modal — campo email opcional (para futura integración Resend), se guarda en DB
+- [x] `/pacientes` — botón "↓ CSV" exporta lista (nombre, tel, email, fecha alta, total turnos) como CSV client-side sin deps externas
+- [x] Dashboard — métrica "Tasa de confirmación" (reemplaza no-show) + banner "próximo turno del día" en header
+- [x] `/agenda` modal "+ Turno" — footer con resumen de turnos del día seleccionado (hora, paciente, duración)
+
 ## 🟢 Completadas — Sesión 03/05/2026 (autónoma — esta sesión)
 - [x] `/conversaciones`: "Tomar control" funcional — textarea + enviar, POST API, Twilio best-effort, banner de alerta
 - [x] POST `/api/data/conversaciones`: nuevo endpoint — recibe `conversacion_id + mensaje`, persiste saliente, envía WhatsApp
