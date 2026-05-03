@@ -7,11 +7,11 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 03/05/2026 (sesión autónoma — integraciones + UX)
-**Sesión:** Tomar control conversaciones + código MP/Resend + 404 + slug normalization
+**Fecha:** 03/05/2026 (sesión autónoma — MP webhook + SEO + mobile responsive + spam protection)
+**Sesión:** Webhook MercadoPago + OG tags + fixes mobile agenda/conversaciones + validación Twilio
 
 ### ¿Dónde quedamos?
-5 tareas completadas: (1) "Tomar control" en conversaciones: el profesional puede escribir y enviar mensajes manuales al paciente. (2) Código MercadoPago listo en el POST de agenda — se activa solo pegando MERCADOPAGO_ACCESS_TOKEN en Vercel. (3) Código Resend listo — se activa con RESEND_API_KEY. (4) Página 404 personalizada. (5) Slug normalizado en configuración.
+4 tareas completadas: (1) `/api/webhooks/mercadopago` implementado — recibe IPN de MP, verifica pago, actualiza turno y tabla pagos. (2) OG tags completos (openGraph + Twitter card). (3) Responsive mobile: modales fluid en agenda, /conversaciones con toggle lista/chat en mobile, svh fix. (4) Twilio webhook: validación de campos requeridos + rechazo de requests malformados.
 
 ### ¿Qué funciona?
 - **App en producción:** https://calendaria.com.ar ✅
@@ -21,15 +21,19 @@
 - **GitHub Actions cron:** `.github/workflows/recordatorios.yml` corre cada hora, llama `/api/cron/recordatorios`
 - **Recordatorios:** columnas `recordatorio_24h_enviado` y `recordatorio_2h_enviado` en `turnos`
 - **/conversaciones:** "Tomar control" funcional — escribe y envía por WhatsApp, guarda en Supabase
+- **/conversaciones mobile:** lista oculta al abrir chat, botón "volver" en header
 - **/agenda:** click en espacio vacío del calendario → modal con fecha/hora pre-cargada; empty state overlay
 - **/agenda:** validación de solapamiento en POST (409 con nombre del paciente conflictivo)
 - **/agenda modal:** si MERCADOPAGO_ACCESS_TOKEN está seteado → muestra botón "Cobrar seña" post-creación
+- **/agenda mobile:** modales fluid (`min(Xpx, calc(100vw - 32px))`), grid con minmax, svh
 - **/pacientes:** botón "Eliminar" con confirmación inline (cancela turnos futuros automáticamente)
 - **/agente tab "Precios":** tarifas editables (label/precio/duración), agregar/quitar filas, persisten en `agente_tarifas`
 - **/agente tab "Integraciones":** estados reales — WhatsApp pendiente, Calendar conectado
 - **/dashboard:** loading.tsx con skeleton shimmer mientras carga SSR
 - **404 personalizada:** not-found.tsx con design tokens, redirige a /dashboard si logueado
-- **Metadata:** título de pestaña correcto en todas las rutas del panel
+- **Metadata + OG tags:** título, description, openGraph, twitter card — en todas las rutas
+- **MercadoPago webhook:** `/api/webhooks/mercadopago` — procesa IPN, actualiza turno a 'confirmado'
+- **Twilio webhook:** validación de campos `From/To/Body` requeridos — 400 si faltan
 - **Brand system:** Lockup/Isotype/Wordmark, app icon, next/font/google activo
 - **WhatsApp multi-tenant:** `/w/slug` → Aurora del profesional correcto
 - **Agente Aurora:** system prompt dinámico, tool use (get_disponibilidad, crear_turno, cancelar, ver)
@@ -100,3 +104,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 loop 2 | Auditoría final PROFESIONAL_ID + 5 bugs UX/lógica (agent-tools, twilio fallback, onboarding, pacientes, conversaciones) | Probar registro nuevo usuario |
 | 03/05/2026 loop 3 | Precios editables, loading skeleton, empty states mejorados, metadata por ruta, WhatsApp status honesto | MercadoPago + Resend + probar registro |
 | 03/05/2026 loop 4 | Tomar control conversaciones, código MP+Resend (activados por env var), 404, slug normalization | Pegar credenciales MP+Resend + probar registro |
+| 03/05/2026 loop 5 | Webhook MP implementado, OG tags, mobile responsive (agenda+conversaciones), Twilio spam fix | Pegar credenciales MP+Resend + probar registro |

@@ -127,10 +127,13 @@ export default function ConversacionesPage() {
   }
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 0px)', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100svh', overflow: 'hidden' }}>
 
       {/* ── Lista lateral ── */}
-      <div style={{ width: 300, borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', flexShrink: 0, background: 'var(--surface)' }}>
+      <div
+        style={{ width: 300, borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', flexShrink: 0, background: 'var(--surface)' }}
+        className={seleccionada ? 'hidden md:flex' : 'flex'}
+      >
         {/* Header lista */}
         <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid var(--line)' }}>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 500, color: 'var(--ink)', margin: '0 0 14px', letterSpacing: '-0.01em' }}>
@@ -229,6 +232,17 @@ export default function ConversacionesPage() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           {/* Header chat */}
           <div style={{ padding: '14px 20px', background: '#F0EAE0', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Volver a lista en mobile */}
+            <button
+              className="md:hidden"
+              onClick={() => setSeleccionada(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-2)', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+              aria-label="Volver a la lista"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
             <Avatar nombre={nombreConv(seleccionada)} size={36} />
             <div>
               <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{nombreConv(seleccionada)}</p>

@@ -26,9 +26,23 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Calendaria — Tu agente IA de agenda",
-  description: "Calendaria gestiona tu agenda por WhatsApp de forma autónoma. Turnos, cobros y recordatorios automáticos para cualquier profesional.",
+  title: "Calendaria — Tu agente IA para turnos por WhatsApp",
+  description: "El agente de IA que gestiona tu agenda mientras vos atendés. Turnos por WhatsApp, recordatorios automáticos y cobro de señas.",
   keywords: ["agenda IA", "turnos automáticos", "WhatsApp agente", "psicólogo", "odontólogo", "Argentina"],
+  metadataBase: new URL("https://calendaria.com.ar"),
+  openGraph: {
+    title: "Calendaria — Tu agente IA para turnos por WhatsApp",
+    description: "Turnos por WhatsApp, recordatorios automáticos y cobro de señas.",
+    url: "https://calendaria.com.ar",
+    siteName: "Calendaria",
+    locale: "es_AR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Calendaria — Tu agente IA para turnos por WhatsApp",
+    description: "Turnos por WhatsApp, recordatorios automáticos y cobro de señas.",
+  },
 };
 
 export default function RootLayout({

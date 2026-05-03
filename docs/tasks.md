@@ -12,6 +12,7 @@
 - [x] `/agenda`: acciones del modal (cancelar turno, marcar completado) conectadas a Supabase
 - [x] `/agente` tab "Reglas de agenda": editar horarios por día con toggle + inputs de hora inline
 - [x] Onboarding: asignar `slug` al profesional cuando se registra — campo con auto-sugerencia, validación en tiempo real y preview del link
+- [x] Responsive mobile: modales agenda fluid, conversaciones con toggle lista/chat, svh fix
 
 ### Auth y onboarding
 - [x] Activar auth obligatorio en producción: `NEXT_PUBLIC_PROFESIONAL_ID` eliminado de Vercel + cuenta auth creada para profesional de dev
@@ -41,11 +42,15 @@
 
 ## 🟡 Fase 3 — Pagos y recordatorios
 - [x] MercadoPago: código implementado — se activa automáticamente al pegar `MERCADOPAGO_ACCESS_TOKEN` en Vercel. Crea preference, guarda en tabla `pagos`, retorna link al modal. Falta credential.
+- [x] `/api/webhooks/mercadopago`: endpoint implementado — recibe notificación IPN, verifica pago via API MP, actualiza turno a 'confirmado' y tabla `pagos` a 'pagado'
 - [x] Endpoint `/api/webhooks/n8n` para recordatorios manuales (turno_id + tipo)
 - [x] GitHub Actions cron cada hora → `/api/cron/recordatorios` → WhatsApp 24h y 2h antes
 - [x] Migración Supabase: `recordatorio_24h_enviado` y `recordatorio_2h_enviado` en `turnos`
 - [x] `CRON_SECRET` en Vercel y en GitHub Actions secrets (`APP_URL` también)
 - [x] Resend: código implementado — se activa automáticamente al pegar `RESEND_API_KEY`. Falta credential.
+
+### SEO y metadata
+- [x] OG tags completos en layout.tsx: openGraph + twitter card + metadataBase
 
 ---
 

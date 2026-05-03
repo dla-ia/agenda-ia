@@ -98,7 +98,7 @@ function TurnoModal({ turno, onClose, onUpdate }: {
       style={{ position: 'fixed', inset: 0, background: 'rgba(44,36,29,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, backdropFilter: 'blur(3px)' }}
       onClick={onClose}
     >
-      <div className="card" style={{ width: 360, padding: 26, background: 'var(--surface)' }} onClick={e => e.stopPropagation()}>
+      <div className="card" style={{ width: 'min(360px, calc(100vw - 32px))', padding: 26, background: 'var(--surface)' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18 }}>
           <div>
             <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500, color: 'var(--ink)', margin: '0 0 4px', letterSpacing: '-0.01em' }}>
@@ -205,7 +205,7 @@ function NuevoTurnoModal({ onClose, onCreate, initialDate, initialHora }: {
       style={{ position: 'fixed', inset: 0, background: 'rgba(44,36,29,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, backdropFilter: 'blur(3px)' }}
       onClick={onClose}
     >
-      <div className="card" style={{ width: 400, padding: 26, background: 'var(--surface)' }} onClick={e => e.stopPropagation()}>
+      <div className="card" style={{ width: 'min(400px, calc(100vw - 32px))', padding: 26, background: 'var(--surface)' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
             Nuevo turno
@@ -374,23 +374,23 @@ export default function AgendaPage() {
   const today    = new Date();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100svh', overflow: 'hidden', background: 'var(--bg)' }}>
 
       {/* ── Header ── */}
-      <div style={{ padding: '20px 24px 14px', borderBottom: '1px solid var(--line)', background: 'var(--bg)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--line)', background: 'var(--bg)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
           <div>
             <p className="eyebrow" style={{ marginBottom: 2, textTransform: 'capitalize' }}>{mesLabel}</p>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.015em', margin: 0 }}>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.015em', margin: 0 }}>
               Agenda
             </h1>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
             {cargando && <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>Cargando…</span>}
             <button className="btn btn-sm" onClick={() => setWeekStart(getWeekStart())}>Hoy</button>
             <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-              <button className="btn btn-ghost btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--line)', paddingInline: 12 }} onClick={() => setWeekStart(d => addDays(d, -7))}>←</button>
-              <button className="btn btn-ghost btn-sm" style={{ borderRadius: 0, paddingInline: 12 }} onClick={() => setWeekStart(d => addDays(d, 7))}>→</button>
+              <button className="btn btn-ghost btn-sm" style={{ borderRadius: 0, borderRight: '1px solid var(--line)', paddingInline: 10 }} onClick={() => setWeekStart(d => addDays(d, -7))}>←</button>
+              <button className="btn btn-ghost btn-sm" style={{ borderRadius: 0, paddingInline: 10 }} onClick={() => setWeekStart(d => addDays(d, 7))}>→</button>
             </div>
             <button className="btn btn-primary btn-sm" onClick={() => { setNuevoInit(null); setNuevoOpen(true); }}>+ Turno</button>
           </div>
@@ -398,10 +398,10 @@ export default function AgendaPage() {
       </div>
 
       {/* ── Calendar ── */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative', minWidth: 0 }}>
 
         {/* Day headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(5, 1fr)', background: 'var(--surface)', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(5, minmax(80px, 1fr))', background: 'var(--surface)', borderBottom: '1px solid var(--line)', flexShrink: 0, minWidth: 'min(100%, 480px)' }}>
           <div style={{ borderRight: '1px solid var(--line)' }} />
           {weekDays.map((day, i) => {
             const isToday = day.toDateString() === today.toDateString();
@@ -430,8 +430,8 @@ export default function AgendaPage() {
         )}
 
         {/* Scrollable time grid */}
-        <div ref={scrollRef} className="scroll-styled" style={{ flex: 1, overflowY: 'auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(5, 1fr)' }}>
+        <div ref={scrollRef} className="scroll-styled" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(5, minmax(80px, 1fr))', minWidth: 'min(100%, 480px)' }}>
 
             {/* Time gutter */}
             <div style={{ borderRight: '1px solid var(--line)' }}>

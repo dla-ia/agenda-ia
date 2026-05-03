@@ -82,10 +82,18 @@ async function resolverProfesionalId(
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const rawBody = (formData.get('Body') as string)?.trim();
-  const from = formData.get('From') as string;   // "whatsapp:+5491123456789"
-  const to   = formData.get('To')   as string;   // "whatsapp:+14155238886" o número individual
+  const from    = formData.get('From') as string;   // "whatsapp:+5491123456789"
+  const to      = formData.get('To')   as string;   // "whatsapp:+14155238886" o número individual
 
-  if (!rawBody || !from) return twimlResponse('Mensaje vacío.');
+  // Validación básica de campos requeridos de Twilio
+  if (!rawBody || !from || !to) {
+    return new NextResponse('Bad Request', { status: 400, headers: { 'Content-Type': 'text/plain' } });
+  }
+
+  // Verificar que el número origen tenga formato WhatsApp de Twilio
+  if (!from.startsWith('whatsapp:+') && !from.startsWith('+')) {
+    return new NextResponse('Bad Request', { status: 400, headers: { 'Content-Type': 'text/plain' } });
+  }
 
   const telefono = from.replace('whatsapp:', '');
   const supabase = getAdminClient();

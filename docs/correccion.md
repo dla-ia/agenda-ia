@@ -24,6 +24,10 @@
 | 12 | 2026-05-03 | — | UI | Badge "3" hardcodeado en Conversaciones en sidebar — mostraba información falsa | `dashboard-layout.tsx` | ✅ |
 | 13 | 2026-05-03 | — | Lógica | handleLogout usaba router.push+refresh — mismo bug que registro, podía dejar sesión colgada | `dashboard-layout.tsx` | ✅ |
 | 14 | 2026-05-03 | — | Seguridad | middleware: /auth en PUBLIC_PATHS hacía que usuarios logueados nunca fueran redirigidos a /dashboard | `middleware.ts` | ✅ |
+| 15 | 2026-05-03 | — | Seguridad | Twilio webhook aceptaba requests sin campos `From`/`To`/`Body` — ahora retorna 400 en lugar de procesar | `api/webhooks/twilio/route.ts` | ✅ |
+| 16 | 2026-05-03 | — | UI | Modales de agenda con width fijo (360px/400px) desbordaban pantalla en mobile — cambiado a `min(Xpx, calc(100vw - 32px))` | `agenda/page.tsx` | ✅ |
+| 17 | 2026-05-03 | — | UI | `/conversaciones`: lista lateral de 300px fixed no era usable en mobile — ahora oculta al seleccionar conversación, con botón volver | `conversaciones/page.tsx` | ✅ |
+| 18 | 2026-05-03 | — | UI | `/agenda`: `height: 100vh` sin `s` causaba scroll-over en mobile con barra del navegador visible | `agenda/page.tsx` · `conversaciones/page.tsx` | ✅ |
 | 15 | 2026-05-03 | — | Seguridad | PATCH /api/data/agenda no verificaba ownership del turno — cualquier profesional podía cambiar estado de turnos ajenos | `api/data/agenda/route.ts` | ✅ |
 | 16 | 2026-05-03 | — | Seguridad | GET /api/data/pacientes?id= y DELETE no filtraban por profesional_id — cross-tenant data leak posible | `api/data/pacientes/route.ts` | ✅ |
 | 17 | 2026-05-03 | — | Seguridad | GET /api/data/conversaciones?id= devolvía mensajes sin verificar ownership — cualquier id de conversación era accesible | `api/data/conversaciones/route.ts` | ✅ |
