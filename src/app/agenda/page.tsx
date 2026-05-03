@@ -370,7 +370,7 @@ export default function AgendaPage() {
       </div>
 
       {/* ── Calendar ── */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
 
         {/* Day headers */}
         <div style={{ display: 'grid', gridTemplateColumns: '56px repeat(5, 1fr)', background: 'var(--surface)', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
@@ -389,6 +389,17 @@ export default function AgendaPage() {
             );
           })}
         </div>
+
+        {/* Empty state overlay */}
+        {!cargando && turnos.length === 0 && (
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 5, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--line-2)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/>
+            </svg>
+            <p style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink-3)', margin: 0 }}>Sin turnos esta semana</p>
+            <p style={{ fontSize: 12.5, color: 'var(--ink-3)', margin: 0 }}>Hacé click en cualquier hora del calendario o usá "+ Turno"</p>
+          </div>
+        )}
 
         {/* Scrollable time grid */}
         <div ref={scrollRef} className="scroll-styled" style={{ flex: 1, overflowY: 'auto' }}>

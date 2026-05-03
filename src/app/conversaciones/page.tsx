@@ -115,7 +115,21 @@ export default function ConversacionesPage() {
           {cargando ? (
             <div style={{ padding: 20, color: 'var(--ink-3)', fontSize: 13, textAlign: 'center' }}>Cargando...</div>
           ) : convsFiltradas.length === 0 ? (
-            <div style={{ padding: 20, color: 'var(--ink-3)', fontSize: 13, textAlign: 'center' }}>Sin conversaciones</div>
+            <div style={{ padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--line-2)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              {filtro === 'todas' ? (
+                <>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-2)', margin: 0 }}>Sin conversaciones todavía</p>
+                  <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: 0, lineHeight: 1.5 }}>
+                    Aurora va a empezar a chatear con tus pacientes cuando reciban mensajes por WhatsApp.
+                  </p>
+                </>
+              ) : (
+                <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0 }}>Sin conversaciones {filtro === 'activa' ? 'activas' : 'archivadas'}</p>
+              )}
+            </div>
           ) : (
             convsFiltradas.map(c => {
               const activa = seleccionada?.id === c.id;

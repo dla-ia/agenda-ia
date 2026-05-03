@@ -170,8 +170,27 @@ export default function PacientesPage() {
           {cargando ? (
             <div style={{ padding: 20, color: 'var(--ink-3)', fontSize: 13, textAlign: 'center' }}>Cargando...</div>
           ) : filtrados.length === 0 ? (
-            <div style={{ padding: 20, color: 'var(--ink-3)', fontSize: 13, textAlign: 'center' }}>
-              {busqueda ? 'Sin resultados' : 'Sin pacientes'}
+            <div style={{ padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
+              {busqueda ? (
+                <>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--line-2)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                  <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0 }}>Sin resultados para "{busqueda}"</p>
+                </>
+              ) : (
+                <>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--line-2)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-2)', margin: 0 }}>Todavía no hay pacientes</p>
+                  <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: 0, lineHeight: 1.5 }}>
+                    Agregá uno manualmente con "+ Paciente" o esperá a que Aurora registre los primeros contactos por WhatsApp.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             filtrados.map(p => {

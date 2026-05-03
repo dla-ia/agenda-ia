@@ -31,6 +31,7 @@ function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
 /* ── State shape ──────────────────────────────────────── */
 type HorarioDia = { activo: boolean; inicio: string; fin: string };
 type HorariosSemana = Record<string, HorarioDia>;
+type Tarifa = { id: string; label: string; precio: string; duracion: string };
 
 const DIAS_CONFIG = [
   { key: 'lunes',     label: 'Lunes' },
@@ -51,6 +52,12 @@ function defaultHorarios(inicio = '09:00', fin = '19:00', diasActivos = [1,2,3,4
   );
 }
 
+const DEFAULT_TARIFAS: Tarifa[] = [
+  { id: '1', label: 'Primera consulta', precio: '18000', duracion: '50 min' },
+  { id: '2', label: 'Sesión individual', precio: '15000', duracion: '50 min' },
+  { id: '3', label: 'Sesión de pareja',  precio: '22000', duracion: '60 min' },
+];
+
 interface Config {
   nombre: string;
   tono: 'warm' | 'direct' | 'casual';
@@ -65,6 +72,7 @@ interface Config {
   senaVencimiento: string;
   senaSinPago: boolean;
   horarios: HorariosSemana;
+  tarifas: Tarifa[];
 }
 
 const DEFAULTS: Config = {
@@ -81,6 +89,7 @@ const DEFAULTS: Config = {
   senaVencimiento: '2h',
   senaSinPago: true,
   horarios: defaultHorarios(),
+  tarifas: DEFAULT_TARIFAS,
 };
 
 function fromApi(data: Record<string, string>): Config {
@@ -90,6 +99,10 @@ function fromApi(data: Record<string, string>): Config {
   } else if (data._horario_inicio) {
     const dias = data._dias_laborables ? JSON.parse(data._dias_laborables) : [1,2,3,4,5];
     horarios = defaultHorarios(data._horario_inicio, data._horario_fin ?? '19:00', dias);
+  }
+  let tarifas = DEFAULTS.tarifas;
+  if (data.agente_tarifas) {
+    try { tarifas = JSON.parse(data.agente_tarifas); } catch {}
   }
   return {
     nombre:              data.agente_nombre ?? DEFAULTS.nombre,
@@ -105,6 +118,7 @@ function fromApi(data: Record<string, string>): Config {
     senaVencimiento:     data.agente_sena_vencimiento ?? DEFAULTS.senaVencimiento,
     senaSinPago:         data.agente_sena_sin_pago !== 'false',
     horarios,
+    tarifas,
   };
 }
 
@@ -123,6 +137,7 @@ function toApi(c: Config): Record<string, string> {
     agente_sena_vencimiento:    c.senaVencimiento,
     agente_sena_sin_pago:       String(c.senaSinPago),
     agente_horarios:            JSON.stringify(c.horarios),
+    agente_tarifas:             JSON.stringify(c.tarifas),
   };
 }
 
@@ -363,35 +378,94 @@ function TabReglasAgenda({ config, set }: { config: Config; set: (f: (c: Config)
 }
 
 /* ── Tab: Precios y pagos ────────────────────────────── */
-function PriceRow({ label, price, duration }: { label: string; price: string; duration: string }) {
+function TarifaRow({
+  tarifa, onChange, onRemove,
+}: {
+  tarifa: Tarifa;
+  onChange: (patch: Partial<Tarifa>) => void;
+  onRemove: () => void;
+}) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--surface-2)' }}>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>{label}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{duration}</div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 80px auto', gap: 8, alignItems: 'center', padding: '8px 10px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--surface-2)' }}>
+      <input
+        className="input"
+        placeholder="Nombre del servicio"
+        value={tarifa.label}
+        onChange={e => onChange({ label: e.target.value })}
+        style={{ fontSize: 13, padding: '5px 8px' }}
+      />
+      <div style={{ position: 'relative' }}>
+        <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--ink-3)', pointerEvents: 'none' }}>$</span>
+        <input
+          className="input"
+          placeholder="15000"
+          value={tarifa.precio}
+          onChange={e => onChange({ precio: e.target.value.replace(/[^\d]/g, '') })}
+          style={{ fontSize: 13, padding: '5px 8px 5px 18px', fontFamily: 'var(--font-mono)', width: '100%' }}
+        />
       </div>
-      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 500, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>
-        ${price}
-      </div>
-      <button className="btn btn-ghost btn-sm" style={{ padding: '4px 6px' }}>
-        <Icon name="moreV" size={14} />
+      <input
+        className="input"
+        placeholder="50 min"
+        value={tarifa.duracion}
+        onChange={e => onChange({ duracion: e.target.value })}
+        style={{ fontSize: 12, padding: '5px 8px', color: 'var(--ink-3)' }}
+      />
+      <button
+        type="button"
+        onClick={onRemove}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', padding: '4px', display: 'flex', alignItems: 'center', borderRadius: 6, transition: 'color 0.12s' }}
+        onMouseEnter={e => (e.currentTarget.style.color = '#B86A6A')}
+        onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink-3)')}
+      >
+        <Icon name="x" size={14} />
       </button>
     </div>
   );
 }
 
 function TabPrecios({ config, set }: { config: Config; set: (f: (c: Config) => Config) => void }) {
+  function updateTarifa(id: string, patch: Partial<Tarifa>) {
+    set(c => ({ ...c, tarifas: c.tarifas.map(t => t.id === id ? { ...t, ...patch } : t) }));
+  }
+  function removeTarifa(id: string) {
+    set(c => ({ ...c, tarifas: c.tarifas.filter(t => t.id !== id) }));
+  }
+  function addTarifa() {
+    const newId = String(Date.now());
+    set(c => ({ ...c, tarifas: [...c.tarifas, { id: newId, label: '', precio: '', duracion: '50 min' }] }));
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
       <div className="card" style={{ padding: 22 }}>
-        <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500, color: 'var(--ink)', margin: '0 0 14px', letterSpacing: '-0.01em' }}>
+        <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 500, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.01em' }}>
           Tarifas
         </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <PriceRow label="Primera consulta" price="18.000" duration="50 min" />
-          <PriceRow label="Sesión individual" price="15.000" duration="50 min" />
-          <PriceRow label="Sesión de pareja"  price="22.000" duration="60 min" />
-          <button className="btn btn-sm" style={{ alignSelf: 'flex-start', marginTop: 6 }}>
+        <p style={{ fontSize: 12.5, color: 'var(--ink-3)', margin: '0 0 14px', lineHeight: 1.45 }}>
+          Aurora menciona estos precios cuando los pacientes preguntan. Guardá para aplicar cambios.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Column labels */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 80px 30px', gap: 8, paddingInline: 10 }}>
+            <span style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 500 }}>Servicio</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 500 }}>Precio</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-3)', fontWeight: 500 }}>Duración</span>
+          </div>
+          {config.tarifas.map(t => (
+            <TarifaRow
+              key={t.id}
+              tarifa={t}
+              onChange={patch => updateTarifa(t.id, patch)}
+              onRemove={() => removeTarifa(t.id)}
+            />
+          ))}
+          {config.tarifas.length === 0 && (
+            <p style={{ fontSize: 13, color: 'var(--ink-3)', padding: '12px 10px', fontStyle: 'italic' }}>
+              Sin tarifas configuradas. Agregá al menos una para que Aurora pueda responder precios.
+            </p>
+          )}
+          <button type="button" className="btn btn-sm" style={{ alignSelf: 'flex-start', marginTop: 4 }} onClick={addTarifa}>
             <Icon name="plus" size={12} /> Agregar tarifa
           </button>
         </div>
@@ -463,7 +537,7 @@ function IntegCard({ name, desc, icon, estado }: { name: string; desc: string; i
 function TabIntegraciones() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
-      <IntegCard name="WhatsApp Business" desc="Mensajes vía Twilio · sandbox activo" icon="phone" estado="conectado" />
+      <IntegCard name="WhatsApp Business" desc="Sandbox Twilio activo · pendiente activación de número real para producción" icon="phone" estado="pendiente" />
       <IntegCard name="Google Calendar"   desc="Sincronización de turnos · OAuth conectado" icon="calendar" estado="conectado" />
       <IntegCard name="MercadoPago"       desc="Cobro de señas · configuración pendiente" icon="wallet" estado="pendiente" />
       <IntegCard name="Resend"            desc="Confirmaciones y recordatorios por email" icon="inbox" estado="pendiente" />
@@ -597,9 +671,9 @@ export default function AgentePage() {
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <span className="badge badge-success">
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--sage)', display: 'inline-block' }} />
-              Activo en WhatsApp
+            <span className="badge badge-warn">
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
+              Sandbox activo
             </span>
             <button className="btn btn-sm">
               <Icon name="sparkles" size={13} /> Vista previa

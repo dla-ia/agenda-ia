@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import { supabaseAdmin, getProfesionalId } from '@/lib/supabase-admin';
 
+export const metadata: Metadata = { title: 'Panel de control — Calendaria' };
 export const dynamic = 'force-dynamic';
 
 /* ── Helpers ────────────────────────────────────────────── */
