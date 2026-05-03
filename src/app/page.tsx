@@ -158,10 +158,10 @@ function Navbar() {
 
         {/* Links */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Link href="/dashboard" className="btn btn-ghost btn-sm" style={{ color: 'var(--ink-2)' }}>
+          <Link href="/auth" className="btn btn-ghost btn-sm" style={{ color: 'var(--ink-2)' }}>
             Iniciar sesión
           </Link>
-          <Link href="/dashboard" className="btn btn-primary btn-sm">
+          <Link href="/auth" className="btn btn-primary btn-sm">
             Empezar gratis
           </Link>
         </div>
@@ -223,6 +223,88 @@ function ChatMockup() {
   );
 }
 
+/* ── FAQ ────────────────────────────────────────────────── */
+
+const faqs = [
+  {
+    q: '¿Puedo probarlo gratis?',
+    a: 'Sí. Todos los planes incluyen 14 días gratuitos, sin tarjeta de crédito. Configurás tu agente, lo probás con tus pacientes y decidís si te sirve.',
+  },
+  {
+    q: '¿Qué pasa si el paciente escribe fuera de horario?',
+    a: 'Aurora responde igual, las 24 horas. Puede agendar turnos aunque vos estés durmiendo. Si querés, configurá un horario de atención y el agente solo reservará en esas franjas.',
+  },
+  {
+    q: '¿Tengo que instalar algo?',
+    a: 'No. Todo funciona desde el panel web y el WhatsApp de tus pacientes. Sin apps, sin integraciones complicadas. Configuración en 10 minutos.',
+  },
+  {
+    q: '¿Qué pasa si quiero cancelar?',
+    a: 'Cancelás en cualquier momento desde el panel, sin penalidades ni permanencia mínima. No creemos en los contratos que atrapan.',
+  },
+];
+
+function FaqSection() {
+  const [open, setOpen] = useState<number | null>(null);
+
+  return (
+    <section style={{ maxWidth: 720, margin: '0 auto', padding: '80px 24px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 48 }}>
+        <p className="eyebrow" style={{ marginBottom: 12 }}>Preguntas frecuentes</p>
+        <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px, 3.5vw, 36px)', fontWeight: 500, letterSpacing: '-0.02em', margin: 0, color: 'var(--ink)' }}>
+          Todo lo que querés saber
+        </h2>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {faqs.map((faq, i) => (
+          <div
+            key={i}
+            className="card"
+            style={{ overflow: 'hidden', cursor: 'pointer' }}
+            onClick={() => setOpen(open === i ? null : i)}
+          >
+            <div
+              style={{
+                padding: '16px 20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                userSelect: 'none',
+              }}
+            >
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
+                {faq.q}
+              </span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--ink-3)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0, transform: open === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+            {open === i && (
+              <div style={{ padding: '0 20px 16px', borderTop: '1px solid var(--line)' }}>
+                <p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--ink-2)', margin: '12px 0 0' }}>
+                  {faq.a}
+                </p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 /* ── Página principal ───────────────────────────────────── */
 
 export default function LandingPage() {
@@ -274,14 +356,20 @@ export default function LandingPage() {
             Respondé consultas, cobrá señas y mandá recordatorios — sin levantar el teléfono.
           </p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 32 }}>
-            <Link href="/dashboard" className="btn btn-primary" style={{ fontSize: 15, padding: '12px 24px' }}>
+            <Link href="/auth" className="btn btn-primary" style={{ fontSize: 15, padding: '12px 24px' }}>
               Empezar gratis — 14 días sin cargo
             </Link>
             <a href="#como-funciona" className="btn" style={{ fontSize: 15, padding: '12px 24px' }}>
               Ver cómo funciona
             </a>
           </div>
-          <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>
+          <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: '0 0 10px' }}>
+            ¿Querés verlo en acción?{' '}
+            <a href="/w/demo" style={{ color: 'var(--terracotta)', textDecoration: 'none', fontWeight: 500 }}>
+              Probá la demo en WhatsApp →
+            </a>
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 0 }}>
             Sin tarjeta de crédito · Configuración en 10 minutos
           </p>
         </div>
@@ -494,7 +582,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/dashboard"
+                  href="/auth"
                   className={plan.destacado ? 'btn btn-primary' : 'btn'}
                   style={{
                     display: 'block',
@@ -513,6 +601,9 @@ export default function LandingPage() {
           Todos los planes incluyen 14 días gratis. Sin tarjeta de crédito.
         </p>
       </section>
+
+      {/* ── FAQ ─────────────────────────────────────────── */}
+      <FaqSection />
 
       {/* ── CTA FINAL ───────────────────────────────────── */}
       <section
@@ -557,7 +648,7 @@ export default function LandingPage() {
             Configurá a Aurora en 10 minutos y mirá cómo llena tu agenda sola.
             Sin permanencia. Cancelás cuando querés.
           </p>
-          <Link href="/dashboard" className="btn btn-primary" style={{ fontSize: 16, padding: '14px 32px' }}>
+          <Link href="/auth" className="btn btn-primary" style={{ fontSize: 16, padding: '14px 32px' }}>
             Crear mi agente gratis
           </Link>
         </div>

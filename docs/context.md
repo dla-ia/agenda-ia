@@ -7,11 +7,11 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 03/05/2026 (sesión autónoma — MP webhook + SEO + mobile responsive + spam protection)
-**Sesión:** Webhook MercadoPago + OG tags + fixes mobile agenda/conversaciones + validación Twilio
+**Fecha:** 03/05/2026 (sesión autónoma — error boundaries + skeletons + UX landing + /w/[slug] mejorado)
+**Sesión:** Error boundaries globales, loading skeletons para rutas lentas, botón copiar link en /configuracion, página intermedia /w/[slug], FAQ landing y fix CTAs.
 
 ### ¿Dónde quedamos?
-4 tareas completadas: (1) `/api/webhooks/mercadopago` implementado — recibe IPN de MP, verifica pago, actualiza turno y tabla pagos. (2) OG tags completos (openGraph + Twitter card). (3) Responsive mobile: modales fluid en agenda, /conversaciones con toggle lista/chat en mobile, svh fix. (4) Twilio webhook: validación de campos requeridos + rechazo de requests malformados.
+6 tareas completadas: (1) Error boundaries: `error.tsx`, `global-error.tsx`, `dashboard/error.tsx`. (2) Loading skeletons: conversaciones, pacientes, agenda. (3) Botón "Copiar link" en /configuracion con feedback visual 2s. (4) `/w/[slug]` reemplazado por página intermedia HTML con nombre del profesional, spinner y auto-redirect 2s; 404 amigable si slug no existe. (5) Landing CTAs corregidos a `/auth`. (6) Sección FAQ con 4 preguntas expandibles + link demo en hero.
 
 ### ¿Qué funciona?
 - **App en producción:** https://calendaria.com.ar ✅
@@ -29,6 +29,11 @@
 - **/pacientes:** botón "Eliminar" con confirmación inline (cancela turnos futuros automáticamente)
 - **/agente tab "Precios":** tarifas editables (label/precio/duración), agregar/quitar filas, persisten en `agente_tarifas`
 - **/agente tab "Integraciones":** estados reales — WhatsApp pendiente, Calendar conectado
+- **Error boundaries:** `error.tsx` + `global-error.tsx` + `dashboard/error.tsx` — mensajes amigables, botón reset, sin stack traces en prod
+- **Loading skeletons:** `conversaciones/loading.tsx`, `pacientes/loading.tsx`, `agenda/loading.tsx` — shimmer mientras carga SSR
+- **/configuracion:** botón "Copiar link" con feedback "¡Copiado!" 2s junto al slug
+- **/w/[slug]:** página intermedia con nombre del profesional, spinner y auto-redirect 2s a WhatsApp; 404 amigable si slug no existe
+- **Landing:** CTAs corregidos a `/auth`, sección FAQ expandible, link demo en hero
 - **/dashboard:** loading.tsx con skeleton shimmer mientras carga SSR
 - **404 personalizada:** not-found.tsx con design tokens, redirige a /dashboard si logueado
 - **Metadata + OG tags:** título, description, openGraph, twitter card — en todas las rutas
@@ -105,3 +110,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 loop 3 | Precios editables, loading skeleton, empty states mejorados, metadata por ruta, WhatsApp status honesto | MercadoPago + Resend + probar registro |
 | 03/05/2026 loop 4 | Tomar control conversaciones, código MP+Resend (activados por env var), 404, slug normalization | Pegar credenciales MP+Resend + probar registro |
 | 03/05/2026 loop 5 | Webhook MP implementado, OG tags, mobile responsive (agenda+conversaciones), Twilio spam fix | Pegar credenciales MP+Resend + probar registro |
+| 03/05/2026 loop 6 | Error boundaries, loading skeletons (conversaciones/pacientes/agenda), copiar link en /configuracion, /w/slug mejorado, FAQ + CTAs landing | Pegar credenciales MP+Resend + probar registro |

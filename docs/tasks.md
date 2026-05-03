@@ -13,6 +13,14 @@
 - [x] `/agente` tab "Reglas de agenda": editar horarios por día con toggle + inputs de hora inline
 - [x] Onboarding: asignar `slug` al profesional cuando se registra — campo con auto-sugerencia, validación en tiempo real y preview del link
 - [x] Responsive mobile: modales agenda fluid, conversaciones con toggle lista/chat, svh fix
+- [x] Error boundaries: `error.tsx`, `global-error.tsx`, `dashboard/error.tsx` — mensajes amigables + botón reset
+- [x] Loading skeletons: `conversaciones/loading.tsx`, `pacientes/loading.tsx`, `agenda/loading.tsx`
+- [x] `/configuracion`: botón "Copiar link" con feedback visual (¡Copiado! 2s) junto al slug
+- [x] `/w/[slug]`: página intermedia amigable con nombre del profesional, spinner y auto-redirect 2s
+- [x] `/w/[slug]` slug inválido: 404 HTML amigable en lugar de redirect a raíz
+- [x] Landing page CTAs: corregidos a `/auth` (antes apuntaban a `/dashboard`)
+- [x] Landing page: sección FAQ con 4 preguntas expandibles
+- [x] Landing page: link demo `/w/demo` visible en el hero
 
 ### Auth y onboarding
 - [x] Activar auth obligatorio en producción: `NEXT_PUBLIC_PROFESIONAL_ID` eliminado de Vercel + cuenta auth creada para profesional de dev

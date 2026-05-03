@@ -43,6 +43,9 @@
 | 31 | 2026-05-03 | — | UI | Modales de agenda con width fijo (360px/400px) desbordaban pantalla en mobile — cambiado a `min(Xpx, calc(100vw - 32px))` | `agenda/page.tsx` | ✅ |
 | 32 | 2026-05-03 | — | UI | `/conversaciones`: lista lateral de 300px fixed no era usable en mobile — ahora oculta al seleccionar conversación, con botón volver | `conversaciones/page.tsx` | ✅ |
 | 33 | 2026-05-03 | — | UI | `/agenda` + `/conversaciones`: `height: 100vh` causaba scroll-over en mobile con barra del navegador visible — corregido a `100svh` | `agenda/page.tsx` · `conversaciones/page.tsx` | ✅ |
+| 34 | 2026-05-03 | — | UX | CTAs de landing (`/`) apuntaban a `/dashboard` en lugar de `/auth` — usuarios no autenticados recibían redirect del middleware | `app/page.tsx` | ✅ |
+| 35 | 2026-05-03 | — | UX | `/w/[slug]`: redireccionaba directo a `wa.me` sin contexto — reemplazado por página intermedia con nombre del profesional, spinner y redirect automático a los 2s | `app/w/[slug]/route.ts` | ✅ |
+| 36 | 2026-05-03 | — | UX | `/w/[slug]` con slug inválido redirigía a `/` sin mensaje — ahora devuelve 404 amigable en HTML | `app/w/[slug]/route.ts` | ✅ |
 
 ---
 

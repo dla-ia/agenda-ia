@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 
@@ -26,6 +26,72 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink-2)' }}>{label}</span>
       {children}
     </label>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* fallback para navegadores sin permisos */
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [text]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title="Copiar link"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '5px 11px',
+        borderRadius: 8,
+        fontSize: 12,
+        fontWeight: 500,
+        border: '1px solid var(--line)',
+        background: copied ? 'rgba(138,161,118,0.12)' : 'var(--bg-2)',
+        color: copied ? '#4E6B3A' : 'var(--ink-2)',
+        cursor: 'pointer',
+        transition: 'all 0.15s ease',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}
+    >
+      {copied ? (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          ¡Copiado!
+        </>
+      ) : (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          Copiar link
+        </>
+      )}
+    </button>
   );
 }
 
@@ -141,6 +207,14 @@ function PerfilCard() {
             </div>
           </Field>
           {slugStatus !== 'idle' && <div style={{ marginTop: 4 }}>{slugHint[slugStatus]}</div>}
+          {slug && slugStatus !== 'taken' && slugStatus !== 'invalid' && (
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>
+                {APP_URL}/w/{slug}
+              </span>
+              <CopyButton text={`${APP_URL}/w/${slug}`} />
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, paddingTop: 4 }}>
           <button type="submit" className="btn btn-primary btn-sm" disabled={saveState === 'saving' || slugStatus === 'taken' || slugStatus === 'invalid'}>
