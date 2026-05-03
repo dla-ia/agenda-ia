@@ -40,14 +40,23 @@
 ---
 
 ## 🟡 Fase 3 — Pagos y recordatorios
-- [ ] MercadoPago: generar link de seña al crear turno (requiere MERCADOPAGO_ACCESS_TOKEN)
+- [x] MercadoPago: código implementado — se activa automáticamente al pegar `MERCADOPAGO_ACCESS_TOKEN` en Vercel. Crea preference, guarda en tabla `pagos`, retorna link al modal. Falta credential.
 - [x] Endpoint `/api/webhooks/n8n` para recordatorios manuales (turno_id + tipo)
 - [x] GitHub Actions cron cada hora → `/api/cron/recordatorios` → WhatsApp 24h y 2h antes
 - [x] Migración Supabase: `recordatorio_24h_enviado` y `recordatorio_2h_enviado` en `turnos`
 - [x] `CRON_SECRET` en Vercel y en GitHub Actions secrets (`APP_URL` también)
-- [ ] Resend: email de confirmación de turno (paquete instalado, falta RESEND_API_KEY)
+- [x] Resend: código implementado — se activa automáticamente al pegar `RESEND_API_KEY`. Falta credential.
 
 ---
+
+## 🟢 Completadas — Sesión 03/05/2026 (autónoma — esta sesión)
+- [x] `/conversaciones`: "Tomar control" funcional — textarea + enviar, POST API, Twilio best-effort, banner de alerta
+- [x] POST `/api/data/conversaciones`: nuevo endpoint — recibe `conversacion_id + mensaje`, persiste saliente, envía WhatsApp
+- [x] MercadoPago: código listo en POST `/api/data/agenda` — activado por `MERCADOPAGO_ACCESS_TOKEN`
+- [x] Resend: código listo en POST `/api/data/agenda` — activado por `RESEND_API_KEY`
+- [x] `/agenda` modal: si respuesta incluye `mp_init_point`, muestra botón "Cobrar seña" en lugar de cerrar
+- [x] Página 404 personalizada (`not-found.tsx`) con design tokens, Fraunces, paleta tierra
+- [x] Slug normalización en PATCH `/api/data/configuracion` + frontend `/configuracion`
 
 ## 🟢 Completadas — Sesión 03/05/2026 (autónoma loop 3)
 - [x] `/agente` tab "Precios": tarifas editables (label, precio, duración), agregar/quitar filas, persisten en `agente_tarifas` JSON en `configuraciones`

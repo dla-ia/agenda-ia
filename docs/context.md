@@ -7,11 +7,11 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 03/05/2026 (sesión autónoma loop 3)
-**Sesión:** Nuevas funcionalidades: precios editables, skeletons, empty states, metadata por ruta
+**Fecha:** 03/05/2026 (sesión autónoma — integraciones + UX)
+**Sesión:** Tomar control conversaciones + código MP/Resend + 404 + slug normalization
 
 ### ¿Dónde quedamos?
-5 objetivos completados: (1) Tab Precios totalmente editable y persistente, (2) Loading skeleton en dashboard, (3) Empty states con copy contextual en agenda/pacientes/conversaciones, (4) Metadata por ruta en todas las páginas del panel, (5) Integraciones honesta — WhatsApp corregido a "pendiente" (sandbox). 28 correcciones en docs/correccion.md.
+5 tareas completadas: (1) "Tomar control" en conversaciones: el profesional puede escribir y enviar mensajes manuales al paciente. (2) Código MercadoPago listo en el POST de agenda — se activa solo pegando MERCADOPAGO_ACCESS_TOKEN en Vercel. (3) Código Resend listo — se activa con RESEND_API_KEY. (4) Página 404 personalizada. (5) Slug normalizado en configuración.
 
 ### ¿Qué funciona?
 - **App en producción:** https://calendaria.com.ar ✅
@@ -20,13 +20,15 @@
 - **Supabase MCP:** conectado y autenticado directamente desde Claude Code
 - **GitHub Actions cron:** `.github/workflows/recordatorios.yml` corre cada hora, llama `/api/cron/recordatorios`
 - **Recordatorios:** columnas `recordatorio_24h_enviado` y `recordatorio_2h_enviado` en `turnos`
+- **/conversaciones:** "Tomar control" funcional — escribe y envía por WhatsApp, guarda en Supabase
 - **/agenda:** click en espacio vacío del calendario → modal con fecha/hora pre-cargada; empty state overlay
 - **/agenda:** validación de solapamiento en POST (409 con nombre del paciente conflictivo)
-- **/pacientes:** botón "Eliminar" con confirmación inline (cancela turnos futuros automáticamente); empty state con CTA
-- **/conversaciones:** empty state contextual con copy de Aurora
+- **/agenda modal:** si MERCADOPAGO_ACCESS_TOKEN está seteado → muestra botón "Cobrar seña" post-creación
+- **/pacientes:** botón "Eliminar" con confirmación inline (cancela turnos futuros automáticamente)
 - **/agente tab "Precios":** tarifas editables (label/precio/duración), agregar/quitar filas, persisten en `agente_tarifas`
 - **/agente tab "Integraciones":** estados reales — WhatsApp pendiente, Calendar conectado
 - **/dashboard:** loading.tsx con skeleton shimmer mientras carga SSR
+- **404 personalizada:** not-found.tsx con design tokens, redirige a /dashboard si logueado
 - **Metadata:** título de pestaña correcto en todas las rutas del panel
 - **Brand system:** Lockup/Isotype/Wordmark, app icon, next/font/google activo
 - **WhatsApp multi-tenant:** `/w/slug` → Aurora del profesional correcto
@@ -67,16 +69,16 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 
 ### ¿Qué está pendiente?
 - **Probar flujo registro completo:** registrarse como nuevo profesional → onboarding → dashboard (no testeado post auth-real)
-- **MercadoPago:** generar link de seña al crear turno (requiere `MERCADOPAGO_ACCESS_TOKEN` — puede usar cuenta existente de Diego)
-- **Resend:** email confirmación de turno (paquete `resend` instalado, requiere `RESEND_API_KEY` — free, sin tarjeta)
+- **MercadoPago activo:** código listo, solo falta pegar `MERCADOPAGO_ACCESS_TOKEN` en Vercel (cuenta de Diego)
+- **Resend activo:** código listo, solo falta crear cuenta free en resend.com + pegar `RESEND_API_KEY` en Vercel
 - **WhatsApp producción:** salir del sandbox Twilio (requiere WhatsApp Business aprobado por Meta)
 - **Vercel MCP:** pendiente autenticar (`https://mcp.vercel.com`)
 - **Twilio MCP:** requiere reinicio de Claude Code
 
 ### El próximo paso concreto es
-> 1. **Probar registro nuevo profesional** en calendaria.com.ar — registrarse, onboarding, usar el panel (todos los bugs conocidos corregidos — está listo para probar)
-> 2. **MercadoPago:** Diego pega su `MERCADOPAGO_ACCESS_TOKEN` (credencial de test) → integro el link de seña
-> 3. **Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY` → integro email de confirmación
+> 1. **Activar MercadoPago:** Diego pega `MERCADOPAGO_ACCESS_TOKEN` en Vercel → al crear un turno aparece botón "Cobrar seña"
+> 2. **Activar Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY` → al crear turno el paciente recibe email
+> 3. **Probar registro nuevo profesional** en calendaria.com.ar — registrarse, onboarding, usar el panel
 > 4. **WhatsApp producción:** salir del sandbox Twilio (requiere aprobación Meta WhatsApp Business)
 
 ---
@@ -97,3 +99,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 loop | Auditoría multi-tenant: 7 fixes seguridad en agenda/pacientes/conversaciones/n8n/cron/onboarding | Probar registro nuevo usuario |
 | 03/05/2026 loop 2 | Auditoría final PROFESIONAL_ID + 5 bugs UX/lógica (agent-tools, twilio fallback, onboarding, pacientes, conversaciones) | Probar registro nuevo usuario |
 | 03/05/2026 loop 3 | Precios editables, loading skeleton, empty states mejorados, metadata por ruta, WhatsApp status honesto | MercadoPago + Resend + probar registro |
+| 03/05/2026 loop 4 | Tomar control conversaciones, código MP+Resend (activados por env var), 404, slug normalization | Pegar credenciales MP+Resend + probar registro |
