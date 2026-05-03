@@ -31,6 +31,11 @@
 | 19 | 2026-05-03 | — | Lógica | api/webhooks/n8n y cron/recordatorios enviaban Twilio From sin prefijo `whatsapp:` — mensajes fallaban silenciosamente | `api/webhooks/n8n/route.ts` · `api/cron/recordatorios/route.ts` | ✅ |
 | 20 | 2026-05-03 | — | Lógica | onboarding Step3 usaba router.push('/dashboard') — mismo bug post-auth que en login/registro | `onboarding/page.tsx` | ✅ |
 | 21 | 2026-05-03 | — | UX | /agenda scrolleaba siempre a top=0 al montar — ahora scrollea al horario actual | `agenda/page.tsx` | ✅ |
+| 22 | 2026-05-03 | — | Datos | agent-tools.ts marcaba conversaciones con estado 'completada' pero el schema y el filtro UI usan 'archivada' — nunca aparecían en el tab "Archivadas" | `lib/agent-tools.ts` | ✅ |
+| 23 | 2026-05-03 | — | Lógica | Twilio webhook fallback usaba `NEXT_PUBLIC_PROFESIONAL_ID` que fue eliminado de Vercel — en producción el fallback retornaba `undefined` y el mensaje respondía error | `api/webhooks/twilio/route.ts` | ✅ |
+| 24 | 2026-05-03 | — | UX | onboarding Step1 handleNext sin try/catch — errores de red dejaban el botón en "Guardando…" sin mensaje visible | `onboarding/page.tsx` | ✅ |
+| 25 | 2026-05-03 | — | UX | eliminarPaciente hacía optimistic remove sin verificar si DELETE fue exitoso — paciente desaparecía de la UI aunque fallara el servidor | `pacientes/page.tsx` | ✅ |
+| 26 | 2026-05-03 | — | UI | Botón "Tomar control" en conversaciones sin handler — falsa promesa de funcionalidad — deshabilitado con tooltip "Próximamente" | `conversaciones/page.tsx` | ✅ |
 
 ---
 
@@ -58,3 +63,5 @@
 - **Multi-tenant ownership en PATCH/DELETE:** siempre agregar `.eq('profesional_id', profesionalId)` en UPDATE y DELETE — sin eso cualquier profesional logueado puede mutar datos ajenos
 - **Nombre de columna en JOIN:** verificar los nombres reales de columna antes de hacer `.select('tabla(columna)')` — `nombre_profesional` vs `nombre` causa error silencioso en runtime
 - **Twilio prefijo whatsapp::** normalizar siempre con `rawFrom.startsWith('whatsapp:') ? rawFrom : \`whatsapp:${rawFrom}\`` — no asumir que la variable de entorno lo incluye
+- **Estado de conversación en agent-tools:** siempre usar `'archivada'` al cerrar conversación — el schema SQL define `activa | archivada`, no `completada`
+- **Fallback env var en webhook:** usar `?? ''` para variables de entorno opcionales removidas de prod — el caller ya valida `if (!profesionalId)` y devuelve error amigable
