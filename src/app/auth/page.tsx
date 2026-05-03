@@ -107,6 +107,17 @@ export default function AuthPage() {
       return;
     }
 
+    // El admin API confirma el email pero no crea sesión — hacemos sign in explícito
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: regEmail,
+      password: regPassword,
+    });
+    if (signInError) {
+      setAlert({ msg: 'Cuenta creada. Podés ingresar con tu email y contraseña.', type: 'info' });
+      setLoading(false);
+      return;
+    }
+
     window.location.href = '/onboarding';
   }
 
