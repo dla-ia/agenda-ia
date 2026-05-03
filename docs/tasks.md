@@ -63,7 +63,7 @@
 ---
 
 ## 🟢 Completadas — Sesión loop 7 (03/05/2026 autónoma — 1h)
-- [x] **Auditoría RLS** — `supabase/migrations/20260503_rls_write_policies.sql`: INSERT/UPDATE/DELETE para profesionales, pacientes, turnos, conversaciones, mensajes, configuraciones, lista_espera (solo SELECT tenían antes). Pendiente ejecutar en Supabase SQL editor.
+- [x] **Auditoría RLS** — `supabase/migrations/20260503_rls_write_policies.sql`: INSERT/UPDATE/DELETE para profesionales, pacientes, turnos, conversaciones, mensajes, configuraciones, lista_espera (solo SELECT tenían antes). ✅ Ejecutado en Supabase SQL editor (03/05/2026).
 - [x] `/pagos` — nueva página SSR con historial de señas, métricas (total cobrado, pendientes, registros) y tabla ordenada por fecha
 - [x] Sidebar — link a `/pagos` con ícono de tarjeta de crédito
 - [x] **Aurora system prompt** — nombre del profesional cargado de DB, manejo explícito de fuera de horario, crisis protocol reforzado (líneas exactas, no continúa flujo de agenda)

@@ -51,7 +51,7 @@
 - **Aurora:** crisis protocol mejorado — líneas exactas, no sigue flujo de agenda post-crisis
 - **Google Calendar:** evento creado al confirmar turno (best-effort)
 - **`docs/correccion.md`:** sistema de registro de bugs con protocolo `corrección:`
-- **RLS:** `supabase/migrations/20260503_rls_write_policies.sql` — políticas INSERT/UPDATE/DELETE para todas las tablas (pendiente ejecutar en Supabase Cloud)
+- **RLS:** `supabase/migrations/20260503_rls_write_policies.sql` — políticas INSERT/UPDATE/DELETE para todas las tablas ✅ ejecutado en Supabase Cloud (03/05/2026)
 
 ### Arquitectura WhatsApp multi-tenant
 ```
@@ -85,7 +85,6 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 - **gh CLI instalado:** `C:\Users\DIEGO\AppData\Local\gh-cli\bin\gh.exe` (autenticado vía Credential Manager)
 
 ### ¿Qué está pendiente?
-- **Ejecutar migración RLS:** `supabase/migrations/20260503_rls_write_policies.sql` — copiar y ejecutar en Supabase SQL editor
 - **Probar flujo registro completo:** registrarse como nuevo profesional → onboarding → dashboard (no testeado post auth-real)
 - **MercadoPago activo:** código listo, solo falta pegar `MERCADOPAGO_ACCESS_TOKEN` en Vercel (cuenta de Diego)
 - **Resend activo:** código listo, solo falta crear cuenta free en resend.com + pegar `RESEND_API_KEY` en Vercel
@@ -94,10 +93,9 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 - **Twilio MCP:** requiere reinicio de Claude Code
 
 ### El próximo paso concreto es
-> 1. **Ejecutar migración RLS:** abrir Supabase SQL editor → copiar y ejecutar `supabase/migrations/20260503_rls_write_policies.sql`
-> 2. **Activar MercadoPago:** Diego pega `MERCADOPAGO_ACCESS_TOKEN` en Vercel → al crear un turno aparece botón "Cobrar seña"
-> 3. **Activar Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY` → al crear turno el paciente recibe email
-> 4. **Probar registro nuevo profesional** en calendaria.com.ar — registrarse, onboarding, usar el panel
+> 1. **Activar MercadoPago:** Diego pega `MERCADOPAGO_ACCESS_TOKEN` en Vercel → al crear un turno aparece botón "Cobrar seña"
+> 2. **Activar Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY` → al crear turno el paciente recibe email
+> 3. **Probar registro nuevo profesional** en calendaria.com.ar — registrarse, onboarding, usar el panel
 
 ---
 
@@ -121,3 +119,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 loop 5 | Webhook MP implementado, OG tags, mobile responsive (agenda+conversaciones), Twilio spam fix | Pegar credenciales MP+Resend + probar registro |
 | 03/05/2026 loop 6 | Error boundaries, loading skeletons (conversaciones/pacientes/agenda), copiar link en /configuracion, /w/slug mejorado, FAQ + CTAs landing | Pegar credenciales MP+Resend + probar registro |
 | 03/05/2026 loop 7 | /pagos, Aurora mejorada (out-of-hours+nombre prof+crisis), email pacientes, CSV export, dashboard metrics (confirmación+próximo turno), agenda modal turnos del día, RLS write policies migration | Ejecutar migración RLS + activar MP+Resend |
+| 03/05/2026 cierre | RLS write policies ejecutado en Supabase SQL editor (Success ✅) — 40 correcciones registradas, todos los features de Fase 1 completos | Activar MP+Resend + probar registro nuevo |
