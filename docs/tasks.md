@@ -49,6 +49,14 @@
 
 ---
 
+## 🟢 Completadas — Sesión 03/05/2026 (autónoma loop 2, 30 min)
+- [x] Auditoría final PROFESIONAL_ID: solo queda fallback legítimo en webhooks/twilio (multi-tenant routing)
+- [x] Lógica: agent-tools marcaba conversaciones como `'completada'` → corregido a `'archivada'` (schema real)
+- [x] Lógica: webhooks/twilio fallback usaba `NEXT_PUBLIC_PROFESIONAL_ID` eliminado de Vercel → usa `?? ''`
+- [x] UX: onboarding Step1 sin try/catch — botón quedaba congelado en "Guardando…" ante error de red
+- [x] UX: eliminarPaciente hacía optimistic remove — paciente desaparecía aunque el servidor fallara
+- [x] UI: botón "Tomar control" en conversaciones sin handler → deshabilitado con tooltip "Próximamente"
+
 ## 🟢 Completadas — Sesión 03/05/2026 (autónoma loop, 30 min)
 - [x] Seguridad: PATCH /agenda agrega filtro `profesional_id` en UPDATE (ownership)
 - [x] Seguridad: GET + DELETE /pacientes filtran por `profesional_id` (cross-tenant leak cerrado)

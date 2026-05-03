@@ -7,11 +7,11 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 03/05/2026 (sesión autónoma loop, 30 min)
-**Sesión:** Auditoría de seguridad multi-tenant + fixes de producción en 7 archivos
+**Fecha:** 03/05/2026 (sesión autónoma loop 2, 30 min)
+**Sesión:** Auditoría final PROFESIONAL_ID + bugs UX/lógica en 5 archivos
 
 ### ¿Dónde quedamos?
-7 vulnerabilidades de seguridad multi-tenant cerradas: PATCH/DELETE de agenda y pacientes ahora verifican ownership (`profesional_id`), conversaciones verifica ownership antes de devolver mensajes, n8n webhook tenía columna incorrecta (`nombre_profesional` → `nombre`) y faltaba prefijo `whatsapp:` en Twilio From (igual en cron/recordatorios). Onboarding Step3 corregido con `window.location.href`. /agenda ahora scrollea al horario actual.
+Auditoría PROFESIONAL_ID completa — solo queda fallback legítimo en webhooks/twilio. 5 bugs corregidos: estado conversación `completada→archivada` (schema SQL), fallback env var removida de Vercel, onboarding sin try/catch, optimistic remove en pacientes, botón muerto en conversaciones. 26 correcciones totales en docs/correccion.md. El panel está limpio para prueba con usuario real.
 
 ### ¿Qué funciona?
 - **App en producción:** https://calendaria.com.ar ✅
@@ -90,3 +90,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 noche | Brand system, /agenda completa, /agente horarios, webhook n8n | Auth real + Fase 3 |
 | 02/05/2026+ | Auth real, GitHub Actions cron, eliminar paciente, click calendario, solapamiento, correccion.md | Probar registro + MercadoPago + Resend |
 | 03/05/2026 loop | Auditoría multi-tenant: 7 fixes seguridad en agenda/pacientes/conversaciones/n8n/cron/onboarding | Probar registro nuevo usuario |
+| 03/05/2026 loop 2 | Auditoría final PROFESIONAL_ID + 5 bugs UX/lógica (agent-tools, twilio fallback, onboarding, pacientes, conversaciones) | Probar registro nuevo usuario |
