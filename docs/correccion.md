@@ -46,6 +46,10 @@
 | 34 | 2026-05-03 | — | UX | CTAs de landing (`/`) apuntaban a `/dashboard` en lugar de `/auth` — usuarios no autenticados recibían redirect del middleware | `app/page.tsx` | ✅ |
 | 35 | 2026-05-03 | — | UX | `/w/[slug]`: redireccionaba directo a `wa.me` sin contexto — reemplazado por página intermedia con nombre del profesional, spinner y redirect automático a los 2s | `app/w/[slug]/route.ts` | ✅ |
 | 36 | 2026-05-03 | — | UX | `/w/[slug]` con slug inválido redirigía a `/` sin mensaje — ahora devuelve 404 amigable en HTML | `app/w/[slug]/route.ts` | ✅ |
+| 37 | 2026-05-03 | — | Seguridad | RLS solo tenía políticas SELECT — INSERT/UPDATE/DELETE sin restricción de `profesional_id` en todas las tablas | `supabase/migrations/20260503_rls_write_policies.sql` | ⏳ pendiente ejecutar SQL |
+| 38 | 2026-05-03 | — | Lógica | System prompt Aurora no cargaba nombre real del profesional ni horario — el agente no podía mencionar su nombre ni detectar mensajes fuera de horario | `lib/claude-agent.ts` | ✅ |
+| 39 | 2026-05-03 | — | UX | Modal "+ Paciente" sin campo email — Resend no podía enviar confirmaciones aunque la key estuviera configurada | `pacientes/page.tsx` · `api/data/pacientes/route.ts` | ✅ |
+| 40 | 2026-05-03 | — | UX | Modal "+ Turno" en /agenda no mostraba los turnos existentes del día — profesional podía crear turnos sin ver el contexto del día | `agenda/page.tsx` | ✅ |
 
 ---
 
