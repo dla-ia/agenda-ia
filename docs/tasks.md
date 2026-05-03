@@ -49,6 +49,14 @@
 
 ---
 
+## 🟢 Completadas — Sesión 03/05/2026 (autónoma loop 3)
+- [x] `/agente` tab "Precios": tarifas editables (label, precio, duración), agregar/quitar filas, persisten en `agente_tarifas` JSON en `configuraciones`
+- [x] `/agente` tab "Integraciones": WhatsApp corregido a badge "pendiente" (era "conectado" incorrecto)
+- [x] `/dashboard`: `loading.tsx` con skeleton animado (shimmer) — se muestra mientras carga SSR
+- [x] `globals.css`: clase `.skeleton` con animación shimmer para reuse
+- [x] Empty states mejorados: conversaciones (copy contextual de Aurora), pacientes (CTA + búsqueda), agenda (overlay con instrucción de click)
+- [x] Metadata por ruta: `layout.tsx` en agenda, agente, auth, configuracion, conversaciones, onboarding, pacientes + `metadata` en `dashboard/page.tsx`
+
 ## 🟢 Completadas — Sesión 03/05/2026 (autónoma loop 2, 30 min)
 - [x] Auditoría final PROFESIONAL_ID: solo queda fallback legítimo en webhooks/twilio (multi-tenant routing)
 - [x] Lógica: agent-tools marcaba conversaciones como `'completada'` → corregido a `'archivada'` (schema real)

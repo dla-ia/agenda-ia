@@ -7,11 +7,11 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 03/05/2026 (sesión autónoma loop 2, 30 min)
-**Sesión:** Auditoría final PROFESIONAL_ID + bugs UX/lógica en 5 archivos
+**Fecha:** 03/05/2026 (sesión autónoma loop 3)
+**Sesión:** Nuevas funcionalidades: precios editables, skeletons, empty states, metadata por ruta
 
 ### ¿Dónde quedamos?
-Auditoría PROFESIONAL_ID completa — solo queda fallback legítimo en webhooks/twilio. 5 bugs corregidos: estado conversación `completada→archivada` (schema SQL), fallback env var removida de Vercel, onboarding sin try/catch, optimistic remove en pacientes, botón muerto en conversaciones. 26 correcciones totales en docs/correccion.md. El panel está limpio para prueba con usuario real.
+5 objetivos completados: (1) Tab Precios totalmente editable y persistente, (2) Loading skeleton en dashboard, (3) Empty states con copy contextual en agenda/pacientes/conversaciones, (4) Metadata por ruta en todas las páginas del panel, (5) Integraciones honesta — WhatsApp corregido a "pendiente" (sandbox). 28 correcciones en docs/correccion.md.
 
 ### ¿Qué funciona?
 - **App en producción:** https://calendaria.com.ar ✅
@@ -20,9 +20,14 @@ Auditoría PROFESIONAL_ID completa — solo queda fallback legítimo en webhooks
 - **Supabase MCP:** conectado y autenticado directamente desde Claude Code
 - **GitHub Actions cron:** `.github/workflows/recordatorios.yml` corre cada hora, llama `/api/cron/recordatorios`
 - **Recordatorios:** columnas `recordatorio_24h_enviado` y `recordatorio_2h_enviado` en `turnos`
-- **/agenda:** click en espacio vacío del calendario → modal con fecha/hora pre-cargada
+- **/agenda:** click en espacio vacío del calendario → modal con fecha/hora pre-cargada; empty state overlay
 - **/agenda:** validación de solapamiento en POST (409 con nombre del paciente conflictivo)
-- **/pacientes:** botón "Eliminar" con confirmación inline (cancela turnos futuros automáticamente)
+- **/pacientes:** botón "Eliminar" con confirmación inline (cancela turnos futuros automáticamente); empty state con CTA
+- **/conversaciones:** empty state contextual con copy de Aurora
+- **/agente tab "Precios":** tarifas editables (label/precio/duración), agregar/quitar filas, persisten en `agente_tarifas`
+- **/agente tab "Integraciones":** estados reales — WhatsApp pendiente, Calendar conectado
+- **/dashboard:** loading.tsx con skeleton shimmer mientras carga SSR
+- **Metadata:** título de pestaña correcto en todas las rutas del panel
 - **Brand system:** Lockup/Isotype/Wordmark, app icon, next/font/google activo
 - **WhatsApp multi-tenant:** `/w/slug` → Aurora del profesional correcto
 - **Agente Aurora:** system prompt dinámico, tool use (get_disponibilidad, crear_turno, cancelar, ver)
@@ -91,3 +96,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 02/05/2026+ | Auth real, GitHub Actions cron, eliminar paciente, click calendario, solapamiento, correccion.md | Probar registro + MercadoPago + Resend |
 | 03/05/2026 loop | Auditoría multi-tenant: 7 fixes seguridad en agenda/pacientes/conversaciones/n8n/cron/onboarding | Probar registro nuevo usuario |
 | 03/05/2026 loop 2 | Auditoría final PROFESIONAL_ID + 5 bugs UX/lógica (agent-tools, twilio fallback, onboarding, pacientes, conversaciones) | Probar registro nuevo usuario |
+| 03/05/2026 loop 3 | Precios editables, loading skeleton, empty states mejorados, metadata por ruta, WhatsApp status honesto | MercadoPago + Resend + probar registro |

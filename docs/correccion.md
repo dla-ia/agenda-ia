@@ -36,6 +36,8 @@
 | 24 | 2026-05-03 | — | UX | onboarding Step1 handleNext sin try/catch — errores de red dejaban el botón en "Guardando…" sin mensaje visible | `onboarding/page.tsx` | ✅ |
 | 25 | 2026-05-03 | — | UX | eliminarPaciente hacía optimistic remove sin verificar si DELETE fue exitoso — paciente desaparecía de la UI aunque fallara el servidor | `pacientes/page.tsx` | ✅ |
 | 26 | 2026-05-03 | — | UI | Botón "Tomar control" en conversaciones sin handler — falsa promesa de funcionalidad — deshabilitado con tooltip "Próximamente" | `conversaciones/page.tsx` | ✅ |
+| 27 | 2026-05-03 | — | UI | Tab "Integraciones": WhatsApp mostraba badge "conectado" (verde) siendo sandbox — corregido a "pendiente" (amarillo) con descripción honesta | `agente/page.tsx` | ✅ |
+| 28 | 2026-05-03 | — | UX | Tab "Precios": tarifas hardcodeadas 18.000/15.000/22.000 no editables y no persistían — reemplazadas por filas editables con persistencia en `configuraciones.agente_tarifas` | `agente/page.tsx` | ✅ |
 
 ---
 
