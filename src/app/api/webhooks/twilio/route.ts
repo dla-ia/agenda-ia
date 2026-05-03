@@ -4,7 +4,13 @@ import { sendMessage, ConversationContext, Message } from '@/lib/claude-agent';
 
 const SHARED_NUMBER = (process.env.TWILIO_PHONE_NUMBER ?? 'whatsapp:+14155238886')
   .replace('whatsapp:', '');
-const FALLBACK_PROFESIONAL_ID = process.env.NEXT_PUBLIC_PROFESIONAL_ID!;
+// ID del profesional de demo/desarrollo. En producción multi-tenant, si los 3 métodos
+// de resolución fallan, se usa este fallback. Puede ser NEXT_PUBLIC_PROFESIONAL_ID
+// (dev) o DEMO_PROFESIONAL_ID (env var dedicada en prod).
+const FALLBACK_PROFESIONAL_ID =
+  process.env.NEXT_PUBLIC_PROFESIONAL_ID ??
+  process.env.DEMO_PROFESIONAL_ID ??
+  '';
 
 function getAdminClient() {
   return createClient(

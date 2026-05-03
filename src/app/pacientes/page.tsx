@@ -57,15 +57,27 @@ export default function PacientesPage() {
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [eliminando, setEliminando] = useState(false);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState('');
 
   async function eliminarPaciente() {
     if (!seleccionado) return;
     setEliminando(true);
-    await fetch(`/api/data/pacientes?id=${seleccionado}`, { method: 'DELETE' });
-    setPacientes(prev => prev.filter(p => p.id !== seleccionado));
-    setSeleccionado(null);
-    setDetalle(null);
-    setConfirmarEliminar(false);
+    setErrorEliminar('');
+    try {
+      const res = await fetch(`/api/data/pacientes?id=${seleccionado}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorEliminar(data.error ?? 'No se pudo eliminar. Intentá de nuevo.');
+        setEliminando(false);
+        return;
+      }
+      setPacientes(prev => prev.filter(p => p.id !== seleccionado));
+      setSeleccionado(null);
+      setDetalle(null);
+      setConfirmarEliminar(false);
+    } catch {
+      setErrorEliminar('Error de conexión. Intentá de nuevo.');
+    }
     setEliminando(false);
   }
 
@@ -222,32 +234,37 @@ export default function PacientesPage() {
                     desde {formatFecha(detalle.paciente.created_at)}
                   </p>
                 </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                  <a href={`https://wa.me/${detalle.paciente.telefono.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm">
-                    WhatsApp
-                  </a>
-                  {confirmarEliminar ? (
-                    <>
-                      <button className="btn btn-sm" style={{ fontSize: 12 }} onClick={() => setConfirmarEliminar(false)} disabled={eliminando}>
-                        Cancelar
-                      </button>
+                <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <a href={`https://wa.me/${detalle.paciente.telefono.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm">
+                      WhatsApp
+                    </a>
+                    {confirmarEliminar ? (
+                      <>
+                        <button className="btn btn-sm" style={{ fontSize: 12 }} onClick={() => { setConfirmarEliminar(false); setErrorEliminar(''); }} disabled={eliminando}>
+                          Cancelar
+                        </button>
+                        <button
+                          className="btn btn-sm"
+                          style={{ fontSize: 12, background: '#B86A6A', color: '#fff', borderColor: '#B86A6A' }}
+                          onClick={eliminarPaciente}
+                          disabled={eliminando}
+                        >
+                          {eliminando ? 'Eliminando…' : '¿Eliminar?'}
+                        </button>
+                      </>
+                    ) : (
                       <button
                         className="btn btn-sm"
-                        style={{ fontSize: 12, background: '#B86A6A', color: '#fff', borderColor: '#B86A6A' }}
-                        onClick={eliminarPaciente}
-                        disabled={eliminando}
+                        style={{ fontSize: 12, color: '#B86A6A', borderColor: 'rgba(184,106,106,0.35)' }}
+                        onClick={() => setConfirmarEliminar(true)}
                       >
-                        {eliminando ? 'Eliminando…' : '¿Eliminar?'}
+                        Eliminar
                       </button>
-                    </>
-                  ) : (
-                    <button
-                      className="btn btn-sm"
-                      style={{ fontSize: 12, color: '#B86A6A', borderColor: 'rgba(184,106,106,0.35)' }}
-                      onClick={() => setConfirmarEliminar(true)}
-                    >
-                      Eliminar
-                    </button>
+                    )}
+                  </div>
+                  {errorEliminar && (
+                    <span style={{ fontSize: 12, color: '#B86A6A' }}>{errorEliminar}</span>
                   )}
                 </div>
               </div>

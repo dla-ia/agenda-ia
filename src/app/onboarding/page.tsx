@@ -105,26 +105,35 @@ function Step1({ onNext, userId }: { onNext: (data: Step1Data) => void; userId: 
     e.preventDefault();
     if (!userId || slugStatus === 'taken' || slugStatus === 'invalid') return;
     setSaving(true);
-    const res = await fetch('/api/auth/profesional', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: userId,
-        especialidad,
-        duracion_sesion_minutos: Number(duracion),
-        horario_inicio: horaInicio,
-        horario_fin: horaFin,
-        slug: slug || null,
-      }),
-    });
-    const json = await res.json();
-    if (json.error?.includes('slug')) {
-      setSlugStatus('taken');
-      setSlugError('Ese slug ya está en uso, elegí otro');
-      setSaving(false);
-      return;
+    try {
+      const res = await fetch('/api/auth/profesional', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: userId,
+          especialidad,
+          duracion_sesion_minutos: Number(duracion),
+          horario_inicio: horaInicio,
+          horario_fin: horaFin,
+          slug: slug || null,
+        }),
+      });
+      const json = await res.json();
+      if (json.error?.includes('slug')) {
+        setSlugStatus('taken');
+        setSlugError('Ese slug ya está en uso, elegí otro');
+        setSaving(false);
+        return;
+      }
+      if (!res.ok) {
+        setSlugError('Error al guardar el perfil. Intentá de nuevo.');
+        setSaving(false);
+        return;
+      }
+      onNext({ especialidad, duracion, slug });
+    } catch {
+      setSlugError('Error de conexión. Revisá tu internet e intentá de nuevo.');
     }
-    onNext({ especialidad, duracion, slug });
     setSaving(false);
   }
 

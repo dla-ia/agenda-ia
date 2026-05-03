@@ -172,7 +172,9 @@ export default function ConversacionesPage() {
               <span className={`badge ${seleccionada.estado === 'activa' ? 'badge-success' : ''}`}>
                 {seleccionada.estado}
               </span>
-              <button className="btn btn-sm">Tomar control</button>
+              <button className="btn btn-sm" disabled title="Próximamente — Aurora maneja esta conversación">
+                Tomar control
+              </button>
             </div>
           </div>
 

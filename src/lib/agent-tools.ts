@@ -241,7 +241,7 @@ export async function executeTool(
 
       // Cerrar conversación para que el próximo mensaje empiece limpio
       if (conversacionId) {
-        supabase.from('conversaciones').update({ estado: 'completada' }).eq('id', conversacionId).then(() => {});
+        supabase.from('conversaciones').update({ estado: 'archivada' }).eq('id', conversacionId).then(() => {});
       }
 
       // Crear evento en Google Calendar (best-effort, no bloquea la confirmación)
