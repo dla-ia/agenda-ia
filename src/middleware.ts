@@ -4,6 +4,8 @@ import type { NextRequest } from 'next/server';
 
 // Rutas siempre públicas (sin sesión y sin restricción)
 const ALWAYS_PUBLIC = ['/'];
+// Prefijos siempre públicos (ej. /w/demo → link WhatsApp de un profesional)
+const ALWAYS_PUBLIC_PREFIXES = ['/w/'];
 // Rutas de auth: accesibles sin sesión, pero si hay sesión → redirigir al panel
 const AUTH_PATHS = ['/auth'];
 
@@ -12,7 +14,7 @@ const AUTH_BYPASS = !!process.env.NEXT_PUBLIC_PROFESIONAL_ID;
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (AUTH_BYPASS || ALWAYS_PUBLIC.includes(pathname)) {
+  if (AUTH_BYPASS || ALWAYS_PUBLIC.includes(pathname) || ALWAYS_PUBLIC_PREFIXES.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
