@@ -26,7 +26,12 @@ export async function PATCH(req: Request) {
   if (nombre     !== undefined) updates.nombre     = nombre;
   if (especialidad !== undefined) updates.especialidad = especialidad;
   if (telefono   !== undefined) updates.telefono   = telefono || null;
-  if (slug       !== undefined) updates.slug       = slug || null;
+  if (slug !== undefined) {
+    const normalizedSlug = slug
+      ? slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      : null;
+    updates.slug = normalizedSlug || null;
+  }
 
   const { error } = await supabaseAdmin
     .from('profesionales')

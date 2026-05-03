@@ -82,10 +82,13 @@ function PerfilCard() {
     e.preventDefault();
     if (slugStatus === 'taken' || slugStatus === 'invalid') return;
     setSaveState('saving');
+    const normalizedSlug = slug
+      ? slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+      : '';
     const res = await fetch('/api/data/configuracion', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, especialidad, telefono, slug }),
+      body: JSON.stringify({ nombre, especialidad, telefono, slug: normalizedSlug }),
     });
     const json = await res.json();
     if (json.error) {
