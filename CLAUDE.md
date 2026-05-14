@@ -58,6 +58,16 @@ cd design_handoff_agendaia && python -m http.server 8000  → ver diseños en lo
 - El agente no da consejos de salud/técnicos — solo gestiona agenda
 - Hablar en español rioplatense, tono cálido y profesional
 - Protocolo de crisis (si alguien menciona autolesión): compartir líneas de ayuda (135 CABA, 0800-345-1435) y notificar al profesional
+- **Tablas nuevas en Supabase:** crear siempre con `GRANT` explícito por rol (anon/authenticated/service_role) usando `supabase/migrations/_TEMPLATE_nueva_tabla.sql`. Desde el 30/10/2026 una tabla de `public` sin GRANT no es visible para supabase-js.
+
+## Seguridad — credenciales
+- Nunca hardcodear API keys, tokens, secrets, passwords en código (`.ts`, `.tsx`, `.js`, `.json`, `.md`, `.claude/*`). Todo va a `.env.local` (gitignored) o variables de Vercel.
+- `.env.local` jamás se versiona. Solo `.env.example` con placeholders.
+- Antes de cada commit, auditar: `python D:\Z-IA\TOOLS\secure-kit\audit_secrets.py .` — si hay CRIT fuera de `.env`, arreglar antes de commitear.
+- Webhooks (Twilio, MercadoPago, n8n): validar firma/secret del proveedor antes de procesar el body. Sin firma válida → 401/400.
+- `SUPABASE_SERVICE_ROLE_KEY` bypasea RLS — solo server-side, nunca en código cliente ni en vars `NEXT_PUBLIC_`.
+- Credencial que estuvo hardcodeada = comprometida. Rotar en el panel del proveedor. Si el repo fue público, además purgar historia con `git filter-repo`.
+- Kit reusable: `D:\Z-IA\TOOLS\secure-kit\` (audit/migrate de secrets).
 
 ## Profesional de prueba (desarrollo)
 - ID: 02bccd60-4947-49fc-877d-f109665920f2

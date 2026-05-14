@@ -79,3 +79,4 @@
 - **Twilio prefijo whatsapp::** normalizar siempre con `rawFrom.startsWith('whatsapp:') ? rawFrom : \`whatsapp:${rawFrom}\`` — no asumir que la variable de entorno lo incluye
 - **Estado de conversación en agent-tools:** siempre usar `'archivada'` al cerrar conversación — el schema SQL define `activa | archivada`, no `completada`
 - **Fallback env var en webhook:** usar `?? ''` para variables de entorno opcionales removidas de prod — el caller ya valida `if (!profesionalId)` y devuelve error amigable
+- **GRANT explícito en tablas nuevas:** desde el 30/10/2026 Supabase no expone tablas nuevas de `public` a la Data API sin `GRANT` — al crear una tabla copiar `supabase/migrations/_TEMPLATE_nueva_tabla.sql` (CREATE + GRANT por rol + RLS + políticas). Sin el GRANT, `supabase.from('tabla')` falla con error de permisos aunque la tabla exista. Las 8 tablas actuales conservan sus grants, no están afectadas
