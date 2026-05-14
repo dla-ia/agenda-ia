@@ -4,6 +4,15 @@ import { Resend } from 'resend';
 
 const ESTADOS_VALIDOS = ['pendiente', 'confirmado', 'cancelado', 'completado', 'no_asistio'];
 
+// Escapa texto controlado por el usuario antes de interpolarlo en HTML (email).
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export async function GET(req: Request) {
   const profesionalId = await getProfesionalId();
   const { searchParams } = new URL(req.url);
@@ -42,6 +51,11 @@ export async function POST(req: Request) {
 
   if (!nombre_paciente?.trim() || !fecha_hora) {
     return NextResponse.json({ error: 'nombre_paciente y fecha_hora son requeridos' }, { status: 400 });
+  }
+
+  // Validar fecha — sin esto una fecha inválida da NaN y saltea el chequeo de solapamiento.
+  if (isNaN(new Date(fecha_hora).getTime())) {
+    return NextResponse.json({ error: 'fecha_hora inválida' }, { status: 400 });
   }
 
   const durMin = Number(duracion_minutos) || 50;
@@ -219,14 +233,14 @@ export async function POST(req: Request) {
     </div>
     <div style="padding:32px;">
       <h1 style="font-size:22px;color:#2C241D;margin:0 0 8px;font-weight:500;">Tu turno fue confirmado</h1>
-      <p style="color:#7A6B5E;font-size:14px;margin:0 0 24px;">Hola ${pacienteData.nombre}, tu turno fue reservado correctamente.</p>
+      <p style="color:#7A6B5E;font-size:14px;margin:0 0 24px;">Hola ${escapeHtml(pacienteData.nombre)}, tu turno fue reservado correctamente.</p>
       <div style="background:#F5EFE6;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
         <p style="margin:0 0 8px;font-size:13px;color:#7A6B5E;">Fecha y hora</p>
         <p style="margin:0;font-size:16px;font-weight:600;color:#2C241D;text-transform:capitalize;">${fechaAR}</p>
       </div>
       <div style="background:#F5EFE6;border-radius:8px;padding:16px 20px;">
         <p style="margin:0 0 8px;font-size:13px;color:#7A6B5E;">Profesional</p>
-        <p style="margin:0;font-size:16px;font-weight:600;color:#2C241D;">${prof?.nombre ?? 'Tu profesional'}</p>
+        <p style="margin:0;font-size:16px;font-weight:600;color:#2C241D;">${escapeHtml(prof?.nombre ?? 'Tu profesional')}</p>
       </div>
       <p style="margin:24px 0 0;font-size:13px;color:#7A6B5E;line-height:1.6;">Si necesitás cancelar o reprogramar, respondé a este email o escribinos por WhatsApp.</p>
     </div>

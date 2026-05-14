@@ -54,6 +54,8 @@
 | 42 | 2026-05-14 | — | Seguridad | POST `/api/auth/profesional` sin auth — confirmaba email de UUID arbitrario (`updateUserById`) e insertaba fila con PK del cliente. Ahora valida que `id === sessionId` | `api/auth/profesional/route.ts` | ✅ |
 | 43 | 2026-05-14 | — | Seguridad | Webhook Twilio no validaba `X-Twilio-Signature` — requests falsos generaban gasto en Claude API, escrituras en DB y WhatsApp salientes. Agregado `validateRequest` (falla cerrado, 403) | `api/webhooks/twilio/route.ts` | ✅ |
 | 44 | 2026-05-14 | — | Seguridad | Webhooks `n8n` y `cron/recordatorios` fail-open: `if (SECRET && ...)` salteaba el chequeo si la env var no estaba seteada. Ahora falla cerrado + comparación `timingSafeEqual` | `api/webhooks/n8n/route.ts` · `api/cron/recordatorios/route.ts` | ✅ |
+| 45 | 2026-05-14 | — | Seguridad | Email de confirmación (Resend) interpolaba `paciente.nombre` y `prof.nombre` crudos en el HTML — HTML injection. Agregado helper `escapeHtml` | `api/data/agenda/route.ts` | ✅ |
+| 46 | 2026-05-14 | — | Lógica | POST `/api/data/agenda` no validaba `fecha_hora` — una fecha inválida daba `NaN` y salteaba el chequeo de solapamiento (recién fallaba en el INSERT). Ahora valida y devuelve 400 | `api/data/agenda/route.ts` | ✅ |
 
 ---
 
