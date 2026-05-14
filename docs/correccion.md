@@ -60,6 +60,7 @@
 | 48 | 2026-05-14 | — | Lógica | `crear_turno` (agente) no validaba solapamiento → doble-booking (la data route sí lo hacía, quedaba inconsistente). Agregada validación de solapamiento + fecha pasada | `lib/agent-tools.ts` | ✅ |
 | 49 | 2026-05-14 | — | Seguridad | `cancelar_turno` (agente) solo filtraba por `profesional_id` — un paciente podía cancelar turnos de otros pacientes del mismo profesional con el `turno_id`. Ahora filtra también por `paciente_id` del que escribe | `lib/agent-tools.ts` | ✅ |
 | 50 | 2026-05-14 | — | Lógica | `crear_turno` convertía ART→UTC con `h + 3` — desbordaba la hora (24+) para turnos después de las 21:00 ART. Reemplazado por `new Date` con offset explícito `-03:00` | `lib/agent-tools.ts` | ✅ |
+| 51 | 2026-05-14 | — | Lógica | **Regresión de #42** — el fix #42 agregó chequeo de sesión al POST `/api/auth/profesional`, pero el cliente lo llamaba *antes* del `signInWithPassword` → registro de profesional nuevo siempre daba 401. No se podía invertir el orden (signIn falla con email sin confirmar). Rediseñado: el server crea el usuario auth con `admin.createUser` (email confirmado, sin id del cliente) — elimina el huevo-y-gallina y el signUp del cliente | `api/auth/profesional/route.ts` · `auth/page.tsx` | ✅ |
 
 ---
 

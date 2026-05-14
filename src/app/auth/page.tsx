@@ -76,38 +76,22 @@ export default function AuthPage() {
     setLoading(true);
     setAlert(null);
 
-    const { data, error } = await supabase.auth.signUp({
-      email: regEmail,
-      password: regPassword,
-    });
-
-    if (error) {
-      setAlert({ msg: error.message, type: 'error' });
-      setLoading(false);
-      return;
-    }
-
-    const userId = data.user?.id;
-    if (!userId) {
-      setAlert({ msg: 'Verificá tu email para confirmar la cuenta.', type: 'info' });
-      setLoading(false);
-      return;
-    }
-
-    // Crear registro en profesionales
+    // El server crea el usuario auth + la fila en `profesionales` (Admin API,
+    // email ya confirmado). El cliente no hace signUp ni manda un id propio.
     const res = await fetch('/api/auth/profesional', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: userId, nombre: regNombre, email: regEmail, tipo_profesional: regTipo }),
+      body: JSON.stringify({ nombre: regNombre, email: regEmail, password: regPassword, tipo_profesional: regTipo }),
     });
 
     if (!res.ok) {
-      setAlert({ msg: 'Error al crear tu cuenta. Intentá de nuevo.', type: 'error' });
+      const data = await res.json().catch(() => ({}));
+      setAlert({ msg: data.error ?? 'Error al crear tu cuenta. Intentá de nuevo.', type: 'error' });
       setLoading(false);
       return;
     }
 
-    // El admin API confirma el email pero no crea sesión — hacemos sign in explícito
+    // La cuenta ya existe y está confirmada — iniciamos sesión para tener cookie
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: regEmail,
       password: regPassword,

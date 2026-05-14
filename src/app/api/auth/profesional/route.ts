@@ -12,21 +12,20 @@ export async function GET(req: Request) {
   return NextResponse.json({ available: !data });
 }
 
-// POST — crea el registro en `profesionales` después del signUp en el cliente.
-// El id debe coincidir con auth.uid() para que RLS funcione.
+// POST — registro de un profesional nuevo.
+// El usuario auth lo crea el SERVER con el Admin API (email ya confirmado), no
+// el cliente. Antes el cliente hacía signUp y mandaba su `id`: eso permitía
+// pasar un UUID arbitrario, y al exigir sesión (#42) el flujo se rompía porque
+// el POST corre antes del signIn. Creando el usuario acá no hay id del cliente
+// ni huevo-y-gallina: el id lo genera Supabase y queda atado al insert.
 export async function POST(req: Request) {
-  const { id, nombre, email, tipo_profesional } = await req.json();
+  const { nombre, email, password, tipo_profesional } = await req.json();
 
-  if (!id || !nombre || !email) {
+  if (!nombre || !email || !password) {
     return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
   }
-
-  // Verificar sesión: el `id` enviado debe ser el del usuario autenticado.
-  // Sin esto, un request anónimo podría confirmar emails ajenos (updateUserById)
-  // o insertar filas en `profesionales` con una PK arbitraria.
-  const sessionId = await getProfesionalId();
-  if (!sessionId || sessionId !== id) {
-    return NextResponse.json({ error: 'Sesión no válida' }, { status: 401 });
+  if (typeof password !== 'string' || password.length < 8) {
+    return NextResponse.json({ error: 'La contraseña debe tener al menos 8 caracteres' }, { status: 400 });
   }
 
   // Mapear tipo_profesional a especialidad por defecto
@@ -41,8 +40,23 @@ export async function POST(req: Request) {
     otro:          'profesional independiente',
   };
 
-  // Auto-confirmar el email via Admin API (service role bypasa la verificación)
-  await supabaseAdmin.auth.admin.updateUserById(id, { email_confirm: true });
+  // Crear el usuario auth (email confirmado — no se manda mail de verificación).
+  const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+
+  if (createError || !created?.user) {
+    const msg = createError?.message ?? 'No se pudo crear la cuenta';
+    const status = /already|registered|exists/i.test(msg) ? 409 : 400;
+    return NextResponse.json(
+      { error: status === 409 ? 'Ese email ya tiene una cuenta.' : msg },
+      { status }
+    );
+  }
+
+  const id = created.user.id;
 
   const { error } = await supabaseAdmin.from('profesionales').insert({
     id,
@@ -52,8 +66,10 @@ export async function POST(req: Request) {
   });
 
   if (error) {
-    // Si ya existe (re-registro), no es error fatal
+    // Si ya existe la fila (re-registro), no es error fatal
     if (error.code === '23505') return NextResponse.json({ ok: true });
+    // Rollback: el auth user quedó huérfano sin fila en `profesionales`
+    await supabaseAdmin.auth.admin.deleteUser(id);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
