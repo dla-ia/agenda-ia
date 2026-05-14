@@ -37,8 +37,21 @@
 
 ### MCP servers
 - [x] Supabase MCP activo — autenticado vía OAuth esta sesión
+- [x] Playwright MCP configurado y **funcionando** (14/05) — `.mcp.json` + `playwright-mcp.config.json` (es-AR, TZ Buenos_Aires). Chromium del MCP instalado con `npx @playwright/mcp install-browser chromium`. Usado e2e esta sesión
 - [ ] Vercel MCP (`https://mcp.vercel.com`) — pendiente autenticar
 - [ ] Twilio MCP (`@twilio-alpha/mcp`) — requiere reinicio de Claude Code
+
+### Seguridad e infraestructura (14/05)
+- [x] Auditoría de seguridad completa del codebase — 10 correcciones #41-50 (ver `docs/correccion.md`): webhooks, cron, auth routes, data routes, OAuth Google, lib/agente
+- [x] Supabase Data API hardening — `supabase/migrations/_TEMPLATE_nueva_tabla.sql` (GRANT explícito, cambio Supabase 30/10/2026) + sección "Seguridad" en CLAUDE.md
+- [x] secure-kit auditado sobre Calendaria — sin leaks. Regex de placeholder mejorada en el kit
+- [x] Git push vía SSH — key dedicada `~/.ssh/id_ed25519_github` + `~/.ssh/config` (reemplaza `gh`/HTTPS que dejó de andar)
+- [x] Verificación post-deploy de los fixes de seguridad (14/05 s2, Playwright MCP) — Twilio rechaza sin firma (403), OAuth Google #47 confirmado en vivo, registro de profesional verificado e2e, n8n/cron OK con secret válido
+- [x] Regresión #51 corregida — el fix #42 rompía el registro de profesional nuevo (POST exigía sesión inexistente). Rediseñado con `admin.createUser` server-side. Commit `a2d4fe5`
+- [x] Supabase restaurado — proyecto estaba pausado por inactividad (free-tier). Data intacta
+- [x] Secrets Vercel re-sincronizados — `CRON_SECRET` (no coincidía) + `N8N_WEBHOOK_SECRET` (faltaba). GitHub `CRON_SECRET` actualizado a mano
+- [ ] Confirmar cron GitHub Actions con run manual de `recordatorios.yml`
+- [ ] Webhook Twilio — probar camino válido con mensaje real al sandbox
 
 ---
 
@@ -61,6 +74,15 @@
 - [x] OG tags completos en layout.tsx: openGraph + twitter card + metadataBase
 
 ---
+
+## 🟢 Completadas — Sesión 14/05/2026 (auditoría de seguridad + infra)
+- [x] **Auditoría de seguridad completa** — codebase entero: 10 correcciones #41-50. 1 crítico (mass-assignment en `auth/profesional` PATCH), 4 altos (POST sin auth, firma Twilio, fail-open n8n/cron, hijack de Google Calendar), 2 medios (doble-booking en `crear_turno`, scoping de `cancelar_turno`), 3 bajos (HTML injection en email, fecha sin validar, offset ART)
+- [x] **Supabase Data API hardening** — `_TEMPLATE_nueva_tabla.sql` con GRANT explícito (cambio Supabase 30/10/2026), sección "Seguridad" en CLAUDE.md, patrones en `correccion.md`
+- [x] **secure-kit** — auditado sobre Calendaria (sin leaks), regex de placeholder del kit mejorada (`[pass]`/`[ref]` whitelist)
+- [x] **SSH para GitHub** — key dedicada `id_ed25519_github` + `~/.ssh/config`, remote en SSH (`gh`/HTTPS dejó de andar)
+- [x] **Playwright MCP** — investigado + configurado (`.mcp.json`, `playwright-mcp.config.json` es-AR/TZ-AR, Chromium instalado)
+- [x] **Build verificado** — `npm run build` compila OK (la falla de `/icon` es local-only: espacio en la ruta `TURNOS 1` rompe `@vercel/og`, en Vercel anda)
+- [x] Docs al día — `context.md`, `tasks.md`, `correccion.md` (#41-50), memoria
 
 ## 🟢 Completadas — Sesión loop 7 (03/05/2026 autónoma — 1h)
 - [x] **Auditoría RLS** — `supabase/migrations/20260503_rls_write_policies.sql`: INSERT/UPDATE/DELETE para profesionales, pacientes, turnos, conversaciones, mensajes, configuraciones, lista_espera (solo SELECT tenían antes). ✅ Ejecutado en Supabase SQL editor (03/05/2026).

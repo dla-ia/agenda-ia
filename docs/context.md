@@ -7,13 +7,21 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 14/05/2026 (sesión — Supabase Data API hardening, secure-kit, SSH setup, auditoría de seguridad completa)
-**Sesión:** template GRANT para tablas nuevas (cambio Supabase 30/10/2026), reglas de seguridad en CLAUDE.md, secure-kit auditado y mejorado, SSH key dedicada para GitHub (push sin tokens), y auditoría de seguridad punta a punta del codebase: 10 correcciones (#41-50).
+**Fecha:** 14/05/2026 (sesión 2 — verificación post-deploy con Playwright MCP)
+**Sesión:** verificación e2e de los fixes de seguridad #41-50 en producción. Supabase estaba pausado → restaurado. Regresión #51 encontrada y corregida (registro de profesional roto por #42). Secrets de Vercel re-sincronizados (`CRON_SECRET`, `N8N_WEBHOOK_SECRET`).
 
 ### ¿Dónde quedamos?
-**Auditoría de seguridad completa** — todo el codebase revisado (webhooks, cron, auth routes, data routes, OAuth, middleware, lib/agente). 10 hallazgos cerrados (#41-50): 1 crítico (mass-assignment en `auth/profesional` PATCH), 4 altos (POST sin auth, firma Twilio, fail-open n8n/cron, hijack de Google Calendar), 2 medios (doble-booking en `crear_turno`, scoping de `cancelar_turno`), 3 bajos (HTML injection en email, fecha sin validar, offset ART). Antes: Supabase Data API hardening (template GRANT + reglas en CLAUDE.md) y setup de SSH para GitHub.
+**Verificación post-deploy hecha con Playwright MCP.** Resultados:
+- ✅ Webhook Twilio rechaza sin firma (403). Falta probar el camino válido (mensaje real al sandbox) — pendiente Diego
+- ✅ Registro de profesional nuevo — verificado e2e (registro → onboarding 3 pasos → dashboard). **Encontré regresión #51:** el fix #42 rompió el registro (el POST exigía sesión antes de que existiera). Corregido: el server crea el usuario con `admin.createUser`, sin id del cliente. Commit `a2d4fe5`, deployado y re-testeado OK.
+- ✅ OAuth Google — fix #47 confirmado en vivo (query param `profesionalId` ignorado, `state` deriva de sesión)
+- ✅ n8n / cron — `N8N_WEBHOOK_SECRET` faltaba en Vercel y `CRON_SECRET` no coincidía → ambos re-seteados, webhooks responden OK con secret válido
 
-**Pendiente: verificación post-deploy** (necesita a Diego) — ver "¿Qué está pendiente?".
+### Bloqueos / decisiones abiertas
+- **Supabase free-tier se pausa solo** tras ~1 semana sin uso → el dominio deja de resolver y la app entera cae. Esta sesión hubo que restaurarlo (`restore_project` vía MCP, ~6 min). Se va a repetir. Considerar upgrade o un ping programado.
+- **GitHub `CRON_SECRET` sincronizado a mano** — Diego lo cargó en GitHub Settings → Secrets con el valor `calendaria_cron_secret_2026` (matchea el nuevo de Vercel). Falta confirmar con un run manual del workflow.
+- **`gh` CLI sigue sin autenticar** — git anda por SSH. Para que Claude maneje GitHub Actions/secrets hace falta `gh auth login`.
+- **Playwright MCP funciona** — esta sesión se instaló el Chromium del MCP (`npx @playwright/mcp install-browser chromium`) y se usó OK.
 
 ### ¿Qué funciona?
 - **App en producción:** https://calendaria.com.ar ✅
@@ -24,6 +32,7 @@
 - **Seguridad — superficie pública auditada:** webhooks (Twilio valida `X-Twilio-Signature`, n8n/cron fail-closed + `timingSafeEqual`), `auth/profesional` (session check + whitelist de columnas), OAuth Google (state desde sesión, no query param), data routes (multi-tenant ownership OK), agente (`crear_turno` valida solapamiento, `cancelar_turno` scopeado al paciente)
 - **secure-kit:** toolkit en `D:\Z-IA\TOOLS\secure-kit\` — `audit_secrets.py` corrido sobre Calendaria, sin leaks (`.env` bien gitignored, `client_secret.json` gitignored + untracked)
 - **Supabase Data API:** `supabase/migrations/_TEMPLATE_nueva_tabla.sql` — toda tabla nueva debe crearse con GRANT explícito (cambio Supabase del 30/10/2026)
+- **Playwright MCP:** configurado en `.mcp.json` + `playwright-mcp.config.json` (locale es-AR, TZ Buenos Aires, viewport 1366×768). Chromium instalado. ⚠️ Requiere reiniciar Claude Code + aprobar el server para activarse
 - **GitHub Actions cron:** `.github/workflows/recordatorios.yml` corre cada hora, llama `/api/cron/recordatorios`
 - **Recordatorios:** columnas `recordatorio_24h_enviado` y `recordatorio_2h_enviado` en `turnos`
 - **/conversaciones:** "Tomar control" funcional — escribe y envía por WhatsApp, guarda en Supabase
@@ -92,24 +101,21 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 - **Git push:** SSH key `~/.ssh/id_ed25519_github` + `~/.ssh/config`. `gh auth login` sigue pendiente si se quiere usar el CLI
 
 ### ¿Qué está pendiente?
-- **⚠️ Verificación post-deploy de los fixes de seguridad de hoy (#41-50):**
-  1. **Webhook Twilio** — mandar 1 mensaje al sandbox. Si da 403, Vercel logs → `[Twilio webhook] Firma inválida` muestra el `publicUrl` reconstruido vs el configurado en Twilio
-  2. **Registro nuevo profesional** — el POST `/api/auth/profesional` ahora exige sesión (debería andar, pero testear)
-  3. **Conectar Google Calendar** desde `/configuracion` — el flujo OAuth ahora deriva de sesión
-  4. **n8n** — confirmar `N8N_WEBHOOK_SECRET` en Vercel (el webhook ahora falla cerrado sin él)
-- **MercadoPago activo:** código listo, solo falta pegar `MERCADOPAGO_ACCESS_TOKEN` en Vercel (cuenta de Diego)
-- **Resend activo:** código listo, solo falta crear cuenta free en resend.com + pegar `RESEND_API_KEY` en Vercel
+- **Confirmar el cron de GitHub Actions** — disparar `recordatorios.yml` manualmente desde la pestaña Actions y ver que dé verde (HTTP 200). El secret ya está sincronizado.
+- **Webhook Twilio — camino válido** — mandar 1 mensaje real al sandbox de WhatsApp. Si da 403, Vercel logs → `[Twilio webhook] Firma inválida` muestra el `publicUrl` reconstruido vs el configurado en Twilio
+- **Verificar credenciales MercadoPago / Resend** — `MERCADOPAGO_ACCESS_TOKEN` y `RESEND_API_KEY` **ya están en Vercel** (cargados hace 14d), pero no se confirmó que los valores sean válidos. Crear un turno con seña y revisar.
 - **WhatsApp producción:** salir del sandbox Twilio (requiere WhatsApp Business aprobado por Meta)
+- **Supabase auto-pausa:** evaluar plan pago o ping programado para que no se caiga la app cada semana
 - **Vercel MCP:** pendiente autenticar (`https://mcp.vercel.com`)
 - **Twilio MCP:** requiere reinicio de Claude Code
 - **M2 (riesgo aceptado):** webhook MercadoPago no valida `x-signature` — mitigado por re-fetch a la API de MP
 - **L4 (bajo, sin tocar):** `claude-agent.ts` relaya `String(err)` al modelo — info leak menor
 
 ### El próximo paso concreto es
-> 1. **Verificar los 4 puntos post-deploy** de arriba — son los fixes de seguridad de hoy, conviene confirmar que no rompieron nada
-> 2. **Activar MercadoPago:** Diego pega `MERCADOPAGO_ACCESS_TOKEN` en Vercel → al crear un turno aparece botón "Cobrar seña"
-> 3. **Activar Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY`
-> 4. **Probar registro nuevo profesional** en calendaria.com.ar
+> 1. **Disparar el workflow `recordatorios.yml`** en GitHub Actions y confirmar HTTP 200
+> 2. **Probar el webhook Twilio** mandando un mensaje real al sandbox de WhatsApp
+> 3. **Verificar MercadoPago/Resend** — crear un turno con seña, ver que el botón "Cobrar seña" genere un link válido y llegue el email
+> 4. **WhatsApp producción** — empezar el trámite de WhatsApp Business con Meta
 
 ---
 
@@ -134,4 +140,5 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 loop 6 | Error boundaries, loading skeletons (conversaciones/pacientes/agenda), copiar link en /configuracion, /w/slug mejorado, FAQ + CTAs landing | Pegar credenciales MP+Resend + probar registro |
 | 03/05/2026 loop 7 | /pagos, Aurora mejorada (out-of-hours+nombre prof+crisis), email pacientes, CSV export, dashboard metrics (confirmación+próximo turno), agenda modal turnos del día, RLS write policies migration | Ejecutar migración RLS + activar MP+Resend |
 | 03/05/2026 cierre | RLS write policies ejecutado en Supabase SQL editor (Success ✅) — 40 correcciones registradas, todos los features de Fase 1 completos | Activar MP+Resend + probar registro nuevo |
-| 14/05/2026 | Supabase Data API hardening (template GRANT + reglas CLAUDE.md), secure-kit auditado/mejorado, SSH key para GitHub, auditoría de seguridad completa del codebase: 10 correcciones #41-50 (1 crít, 4 altos, 2 medios, 3 bajos) | Verificar 4 puntos post-deploy + activar MP+Resend + probar registro |
+| 14/05/2026 | Supabase Data API hardening (template GRANT + reglas CLAUDE.md), secure-kit auditado/mejorado, SSH key para GitHub, auditoría de seguridad completa del codebase (10 correcciones #41-50), Playwright MCP configurado | Reiniciar Claude Code (Playwright MCP) → verificar 4 puntos post-deploy + activar MP+Resend |
+| 14/05/2026 s2 | Verificación post-deploy con Playwright: Supabase restaurado (estaba pausado), regresión #51 corregida (registro roto por #42), `CRON_SECRET`+`N8N_WEBHOOK_SECRET` re-sincronizados en Vercel, registro e2e verificado | Confirmar cron GitHub + webhook Twilio (mensaje real) + verificar MP/Resend |
