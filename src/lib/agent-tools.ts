@@ -193,11 +193,38 @@ export async function executeTool(
       const fechaHoraArg = toolInput.fecha_hora as string; // "2026-05-05T10:00:00" (ART)
       const nombrePaciente = toolInput.nombre_paciente as string;
 
-      // Convertir ART (UTC-3) a UTC sumando 3 horas
-      const [datePart, timePart] = fechaHoraArg.split('T');
-      const [h, m] = timePart.split(':').map(Number);
-      const utcH = h + 3;
-      const fechaHoraUTC = `${datePart}T${String(utcH).padStart(2, '0')}:${String(m).padStart(2, '0')}:00Z`;
+      // Convertir ART (UTC-3) a UTC con offset explícito.
+      // El viejo `h + 3` desbordaba la hora (24+) para turnos después de las 21:00 ART.
+      const fechaHoraDate = new Date(`${fechaHoraArg}-03:00`);
+      if (isNaN(fechaHoraDate.getTime())) {
+        return { success: false, error: 'No pude interpretar la fecha y hora del turno. Pedile al paciente que la repita.' };
+      }
+      if (fechaHoraDate.getTime() < Date.now()) {
+        return { success: false, error: 'Esa fecha y hora ya pasó. Ofrecé un horario futuro al paciente.' };
+      }
+      const fechaHoraUTC = fechaHoraDate.toISOString();
+
+      // Verificar solapamiento — el tool no validaba y permitía doble-booking
+      // (la data route /api/data/agenda sí lo hacía: quedaba inconsistente).
+      const datePart = fechaHoraArg.split('T')[0];
+      const nuevoStart = fechaHoraDate.getTime();
+      const nuevoEnd   = nuevoStart + 50 * 60 * 1000;
+      const { data: turnosDelDia } = await supabase
+        .from('turnos')
+        .select('fecha_hora, duracion_minutos')
+        .eq('profesional_id', profesionalId)
+        .in('estado', ['pendiente', 'confirmado'])
+        .gte('fecha_hora', `${datePart}T00:00:00Z`)
+        .lte('fecha_hora', `${datePart}T23:59:59Z`);
+
+      const haySolapamiento = (turnosDelDia ?? []).some(t => {
+        const tStart = new Date(t.fecha_hora).getTime();
+        const tEnd   = tStart + (t.duracion_minutos ?? 50) * 60 * 1000;
+        return nuevoStart < tEnd && nuevoEnd > tStart;
+      });
+      if (haySolapamiento) {
+        return { success: false, error: 'Ese horario ya está ocupado. Ofrecé otro horario al paciente.' };
+      }
 
       // Buscar o crear paciente
       let { data: paciente } = await supabase
@@ -317,13 +344,31 @@ export async function executeTool(
     case 'cancelar_turno': {
       const turnoId = toolInput.turno_id as string;
 
-      const { error } = await supabase
+      // El turno debe pertenecer al paciente que escribe — sin el filtro por
+      // paciente_id, un paciente podía cancelar turnos de otros pacientes del
+      // mismo profesional si conocía el turno_id (ej. vía prompt injection).
+      const { data: paciente } = await supabase
+        .from('pacientes')
+        .select('id')
+        .eq('profesional_id', profesionalId)
+        .eq('telefono', telefono)
+        .maybeSingle();
+
+      if (!paciente) {
+        return { success: false, error: 'No encontré turnos registrados para tu número.' };
+      }
+
+      const { data: cancelado, error } = await supabase
         .from('turnos')
         .update({ estado: 'cancelado' })
         .eq('id', turnoId)
-        .eq('profesional_id', profesionalId);
+        .eq('profesional_id', profesionalId)
+        .eq('paciente_id', paciente.id)
+        .select('id');
 
-      if (error) return { success: false, error: 'No se pudo cancelar el turno.' };
+      if (error || !cancelado || cancelado.length === 0) {
+        return { success: false, error: 'No se pudo cancelar el turno.' };
+      }
 
       return { success: true };
     }

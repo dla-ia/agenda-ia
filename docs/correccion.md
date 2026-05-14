@@ -57,6 +57,9 @@
 | 45 | 2026-05-14 | — | Seguridad | Email de confirmación (Resend) interpolaba `paciente.nombre` y `prof.nombre` crudos en el HTML — HTML injection. Agregado helper `escapeHtml` | `api/data/agenda/route.ts` | ✅ |
 | 46 | 2026-05-14 | — | Lógica | POST `/api/data/agenda` no validaba `fecha_hora` — una fecha inválida daba `NaN` y salteaba el chequeo de solapamiento (recién fallaba en el INSERT). Ahora valida y devuelve 400 | `api/data/agenda/route.ts` | ✅ |
 | 47 | 2026-05-14 | — | Seguridad | **ALTO** — OAuth Google tomaba `profesionalId` de un query param y lo usaba como `state` → un atacante podía escribir SUS tokens de Google sobre la fila de otro profesional (hijack de calendario, fuga de datos de pacientes). Ahora `profesionalId` se deriva de la sesión en initiation y el callback verifica `state === sessionProfesionalId` | `api/auth/google/route.ts` · `api/auth/google/callback/route.ts` | ✅ |
+| 48 | 2026-05-14 | — | Lógica | `crear_turno` (agente) no validaba solapamiento → doble-booking (la data route sí lo hacía, quedaba inconsistente). Agregada validación de solapamiento + fecha pasada | `lib/agent-tools.ts` | ✅ |
+| 49 | 2026-05-14 | — | Seguridad | `cancelar_turno` (agente) solo filtraba por `profesional_id` — un paciente podía cancelar turnos de otros pacientes del mismo profesional con el `turno_id`. Ahora filtra también por `paciente_id` del que escribe | `lib/agent-tools.ts` | ✅ |
+| 50 | 2026-05-14 | — | Lógica | `crear_turno` convertía ART→UTC con `h + 3` — desbordaba la hora (24+) para turnos después de las 21:00 ART. Reemplazado por `new Date` con offset explícito `-03:00` | `lib/agent-tools.ts` | ✅ |
 
 ---
 
