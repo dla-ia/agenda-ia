@@ -1,0 +1,27 @@
+name: Keepalive Supabase
+
+# Mantiene viva la DB de Supabase (free-tier se pausa tras ~1 semana sin
+# actividad). Independiente del cron de recordatorios — si algún día se toca
+# ese endpoint, este sigue golpeando la DB igual.
+
+on:
+  schedule:
+    # 06:00 y 18:00 UTC todos los días (2 pings/día, sobra para el timer de ~7d)
+    - cron: '0 6,18 * * *'
+  workflow_dispatch: # Permite ejecutar manualmente desde GitHub
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/health
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.APP_URL }}/api/health")
+
+          echo "HTTP status: $response"
+
+          if [ "$response" != "200" ]; then
+            echo "Error: /api/health retornó $response"
+            exit 1
+          fi

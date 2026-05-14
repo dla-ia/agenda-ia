@@ -16,9 +16,11 @@
 - ✅ Registro de profesional nuevo — verificado e2e (registro → onboarding 3 pasos → dashboard). **Encontré regresión #51:** el fix #42 rompió el registro (el POST exigía sesión antes de que existiera). Corregido: el server crea el usuario con `admin.createUser`, sin id del cliente. Commit `a2d4fe5`, deployado y re-testeado OK.
 - ✅ OAuth Google — fix #47 confirmado en vivo (query param `profesionalId` ignorado, `state` deriva de sesión)
 - ✅ n8n / cron — `N8N_WEBHOOK_SECRET` faltaba en Vercel y `CRON_SECRET` no coincidía → ambos re-seteados, webhooks responden OK con secret válido
+- ✅ Cron GitHub Actions — run manual de `recordatorios.yml` en verde. Faltaba el secret `APP_URL` en GitHub (el `CRON_SECRET` Diego lo cargó a mano)
+- ❌ MercadoPago — probado e2e creando turnos: el token en Vercel es inválido/placeholder, MP API lo rechaza, 0 filas en `pagos`. El código está OK — falta el token real de producción
 
 ### Bloqueos / decisiones abiertas
-- **Supabase free-tier se pausa solo** tras ~1 semana sin uso → el dominio deja de resolver y la app entera cae. Esta sesión hubo que restaurarlo (`restore_project` vía MCP, ~6 min). Se va a repetir. Considerar upgrade o un ping programado.
+- **Supabase free-tier se pausa solo** tras ~1 semana sin uso → el dominio deja de resolver y la app entera cae. Esta sesión hubo que restaurarlo (`restore_project` vía MCP, ~6 min). **Mitigado:** el cron horario de recordatorios ya golpea la DB + se agregó `keepalive.yml` (workflow dedicado, 2 pings/día a `/api/health`). Si vuelve a pasar, restaurar con el MCP.
 - **GitHub `CRON_SECRET` sincronizado a mano** — Diego lo cargó en GitHub Settings → Secrets con el valor `calendaria_cron_secret_2026` (matchea el nuevo de Vercel). Falta confirmar con un run manual del workflow.
 - **`gh` CLI sigue sin autenticar** — git anda por SSH. Para que Claude maneje GitHub Actions/secrets hace falta `gh auth login`.
 - **Playwright MCP funciona** — esta sesión se instaló el Chromium del MCP (`npx @playwright/mcp install-browser chromium`) y se usó OK.
@@ -101,9 +103,9 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 - **Git push:** SSH key `~/.ssh/id_ed25519_github` + `~/.ssh/config`. `gh auth login` sigue pendiente si se quiere usar el CLI
 
 ### ¿Qué está pendiente?
-- **Confirmar el cron de GitHub Actions** — disparar `recordatorios.yml` manualmente desde la pestaña Actions y ver que dé verde (HTTP 200). El secret ya está sincronizado.
+- **⚠️ MercadoPago — token inválido.** El `MERCADOPAGO_ACCESS_TOKEN` está cargado en Vercel pero la API de MP lo rechaza (probado e2e: 3 turnos creados, 0 filas en `pagos`, sin botón "Cobrar seña"). El código anda bien. Falta que Diego pegue el access token real de producción (`APP_USR-...`) desde mercadopago.com.ar/developers/panel. No se puede leer el valor actual — es var "Sensitive" en Vercel.
+- **Resend — sin probar.** Necesita un paciente con email cargado + `RESEND_API_KEY` válida. Probablemente el mismo problema de placeholder que MP — verificar la key.
 - **Webhook Twilio — camino válido** — mandar 1 mensaje real al sandbox de WhatsApp. Si da 403, Vercel logs → `[Twilio webhook] Firma inválida` muestra el `publicUrl` reconstruido vs el configurado en Twilio
-- **Verificar credenciales MercadoPago / Resend** — `MERCADOPAGO_ACCESS_TOKEN` y `RESEND_API_KEY` **ya están en Vercel** (cargados hace 14d), pero no se confirmó que los valores sean válidos. Crear un turno con seña y revisar.
 - **WhatsApp producción:** salir del sandbox Twilio (requiere WhatsApp Business aprobado por Meta)
 - **Supabase auto-pausa:** evaluar plan pago o ping programado para que no se caiga la app cada semana
 - **Vercel MCP:** pendiente autenticar (`https://mcp.vercel.com`)
@@ -112,9 +114,9 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 - **L4 (bajo, sin tocar):** `claude-agent.ts` relaya `String(err)` al modelo — info leak menor
 
 ### El próximo paso concreto es
-> 1. **Disparar el workflow `recordatorios.yml`** en GitHub Actions y confirmar HTTP 200
-> 2. **Probar el webhook Twilio** mandando un mensaje real al sandbox de WhatsApp
-> 3. **Verificar MercadoPago/Resend** — crear un turno con seña, ver que el botón "Cobrar seña" genere un link válido y llegue el email
+> 1. **Arreglar MercadoPago** — Diego saca el access token de producción (`APP_USR-...`) del panel de MP y lo pega en Vercel (`MERCADOPAGO_ACCESS_TOKEN`). Después: crear un turno desde `/agenda` y confirmar que aparece el botón "Cobrar seña" + se crea fila en `pagos`
+> 2. **Verificar Resend** — confirmar que `RESEND_API_KEY` en Vercel sea válida; cargar un paciente con email y crear un turno para probar el mail
+> 3. **Probar el webhook Twilio** mandando un mensaje real al sandbox de WhatsApp
 > 4. **WhatsApp producción** — empezar el trámite de WhatsApp Business con Meta
 
 ---
@@ -141,4 +143,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 loop 7 | /pagos, Aurora mejorada (out-of-hours+nombre prof+crisis), email pacientes, CSV export, dashboard metrics (confirmación+próximo turno), agenda modal turnos del día, RLS write policies migration | Ejecutar migración RLS + activar MP+Resend |
 | 03/05/2026 cierre | RLS write policies ejecutado en Supabase SQL editor (Success ✅) — 40 correcciones registradas, todos los features de Fase 1 completos | Activar MP+Resend + probar registro nuevo |
 | 14/05/2026 | Supabase Data API hardening (template GRANT + reglas CLAUDE.md), secure-kit auditado/mejorado, SSH key para GitHub, auditoría de seguridad completa del codebase (10 correcciones #41-50), Playwright MCP configurado | Reiniciar Claude Code (Playwright MCP) → verificar 4 puntos post-deploy + activar MP+Resend |
-| 14/05/2026 s2 | Verificación post-deploy con Playwright: Supabase restaurado (estaba pausado), regresión #51 corregida (registro roto por #42), `CRON_SECRET`+`N8N_WEBHOOK_SECRET` re-sincronizados en Vercel, registro e2e verificado | Confirmar cron GitHub + webhook Twilio (mensaje real) + verificar MP/Resend |
+| 14/05/2026 s2 | Verificación post-deploy con Playwright: Supabase restaurado (estaba pausado), regresión #51 corregida (registro roto por #42), `CRON_SECRET`+`N8N_WEBHOOK_SECRET`+`APP_URL` re-sincronizados (Vercel y GitHub), registro e2e verificado, cron GitHub en verde, MercadoPago probado e2e → token inválido | Diego pega token MP real `APP_USR-...` + verifica Resend key + webhook Twilio (mensaje real) |

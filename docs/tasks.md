@@ -50,7 +50,10 @@
 - [x] Regresión #51 corregida — el fix #42 rompía el registro de profesional nuevo (POST exigía sesión inexistente). Rediseñado con `admin.createUser` server-side. Commit `a2d4fe5`
 - [x] Supabase restaurado — proyecto estaba pausado por inactividad (free-tier). Data intacta
 - [x] Secrets Vercel re-sincronizados — `CRON_SECRET` (no coincidía) + `N8N_WEBHOOK_SECRET` (faltaba). GitHub `CRON_SECRET` actualizado a mano
-- [ ] Confirmar cron GitHub Actions con run manual de `recordatorios.yml`
+- [x] Confirmar cron GitHub Actions — run manual de `recordatorios.yml` en verde (faltaba el secret `APP_URL` en GitHub, agregado)
+- [x] Keepalive Supabase — endpoint `/api/health` (SELECT trivial) + workflow `keepalive.yml` (2 pings/día) para que el free-tier no se vuelva a pausar
+- [~] MercadoPago — código verificado e2e (crea preferencia → tabla `pagos` → botón "Cobrar seña"). **El token en Vercel es inválido/placeholder** — la API de MP lo rechaza, 0 pagos generados. Falta: Diego pega el `APP_USR-...` real de producción
+- [ ] Resend — sin probar (requiere paciente con email + `RESEND_API_KEY` válida). Probable mismo problema de placeholder que MP
 - [ ] Webhook Twilio — probar camino válido con mensaje real al sandbox
 
 ---
@@ -62,12 +65,12 @@
 ---
 
 ## 🟡 Fase 3 — Pagos y recordatorios
-- [x] MercadoPago: código implementado — se activa automáticamente al pegar `MERCADOPAGO_ACCESS_TOKEN` en Vercel. Crea preference, guarda en tabla `pagos`, retorna link al modal. Falta credential.
+- [x] MercadoPago: código implementado y verificado e2e — crea preference, guarda en tabla `pagos`, retorna link al modal. ⚠️ El `MERCADOPAGO_ACCESS_TOKEN` en Vercel está cargado pero es inválido/placeholder (MP API lo rechaza). Falta el token real `APP_USR-...` de producción.
 - [x] `/api/webhooks/mercadopago`: endpoint implementado — recibe notificación IPN, verifica pago via API MP, actualiza turno a 'confirmado' y tabla `pagos` a 'pagado'
 - [x] Endpoint `/api/webhooks/n8n` para recordatorios manuales (turno_id + tipo)
 - [x] GitHub Actions cron cada hora → `/api/cron/recordatorios` → WhatsApp 24h y 2h antes
 - [x] Migración Supabase: `recordatorio_24h_enviado` y `recordatorio_2h_enviado` en `turnos`
-- [x] `CRON_SECRET` en Vercel y en GitHub Actions secrets (`APP_URL` también)
+- [x] `CRON_SECRET` en Vercel y en GitHub Actions secrets (`APP_URL` también) — re-sincronizados 14/05 s2: el valor de Vercel no coincidía y el secret `APP_URL` faltaba en GitHub
 - [x] Resend: código implementado — se activa automáticamente al pegar `RESEND_API_KEY`. Falta credential.
 
 ### SEO y metadata
