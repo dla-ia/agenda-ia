@@ -7,17 +7,23 @@
 ---
 
 ## Último estado conocido
-**Fecha:** 03/05/2026 (sesión autónoma loop 7 — pagos, system prompt Aurora, email pacientes, CSV, métricas, RLS)
-**Sesión:** /pagos nueva página, Aurora mejorada (fuera de horario + nombre profesional), email opcional en pacientes, export CSV, tasa de confirmación en dashboard, próximo turno del día, turnos del día en modal de agenda, auditoría RLS.
+**Fecha:** 14/05/2026 (sesión — Supabase Data API hardening, secure-kit, SSH setup, auditoría de seguridad completa)
+**Sesión:** template GRANT para tablas nuevas (cambio Supabase 30/10/2026), reglas de seguridad en CLAUDE.md, secure-kit auditado y mejorado, SSH key dedicada para GitHub (push sin tokens), y auditoría de seguridad punta a punta del codebase: 10 correcciones (#41-50).
 
 ### ¿Dónde quedamos?
-8 tareas completadas: (1) `/pagos`: historial de señas con métricas y tabla ordenada. (2) Aurora system prompt: nombre del profesional, manejo fuera de horario, crisis protocol reforzado. (3) Email opcional en modal "+ Paciente" y guardado en Supabase. (4) Botón "↓ CSV" en /pacientes (genera cliente-side, sin deps). (5) Dashboard: métrica "tasa de confirmación" + banner "próximo turno del día". (6) Agenda modal: resumen turnos del día seleccionado en footer. (7) RLS write policies: migration SQL en supabase/migrations/ (INSERT/UPDATE/DELETE para todas las tablas). (8) Sidebar: link a /pagos.
+**Auditoría de seguridad completa** — todo el codebase revisado (webhooks, cron, auth routes, data routes, OAuth, middleware, lib/agente). 10 hallazgos cerrados (#41-50): 1 crítico (mass-assignment en `auth/profesional` PATCH), 4 altos (POST sin auth, firma Twilio, fail-open n8n/cron, hijack de Google Calendar), 2 medios (doble-booking en `crear_turno`, scoping de `cancelar_turno`), 3 bajos (HTML injection en email, fecha sin validar, offset ART). Antes: Supabase Data API hardening (template GRANT + reglas en CLAUDE.md) y setup de SSH para GitHub.
+
+**Pendiente: verificación post-deploy** (necesita a Diego) — ver "¿Qué está pendiente?".
 
 ### ¿Qué funciona?
 - **App en producción:** https://calendaria.com.ar ✅
 - **Auth real:** login/registro/onboarding protegido — `NEXT_PUBLIC_PROFESIONAL_ID` eliminado de Vercel
 - **Login dev:** diego.leonardo.alvarez@gmail.com / Calendaria2026! (cuenta auth creada con UUID correcto)
 - **Supabase MCP:** conectado y autenticado directamente desde Claude Code
+- **Git push vía SSH:** key dedicada `~/.ssh/id_ed25519_github` + `~/.ssh/config` (`IdentitiesOnly yes`). Remote en SSH (`git@github.com:dla-ia/agenda-ia.git`). No más tokens/HTTPS — `gh` CLI no quedó autenticado
+- **Seguridad — superficie pública auditada:** webhooks (Twilio valida `X-Twilio-Signature`, n8n/cron fail-closed + `timingSafeEqual`), `auth/profesional` (session check + whitelist de columnas), OAuth Google (state desde sesión, no query param), data routes (multi-tenant ownership OK), agente (`crear_turno` valida solapamiento, `cancelar_turno` scopeado al paciente)
+- **secure-kit:** toolkit en `D:\Z-IA\TOOLS\secure-kit\` — `audit_secrets.py` corrido sobre Calendaria, sin leaks (`.env` bien gitignored, `client_secret.json` gitignored + untracked)
+- **Supabase Data API:** `supabase/migrations/_TEMPLATE_nueva_tabla.sql` — toda tabla nueva debe crearse con GRANT explícito (cambio Supabase del 30/10/2026)
 - **GitHub Actions cron:** `.github/workflows/recordatorios.yml` corre cada hora, llama `/api/cron/recordatorios`
 - **Recordatorios:** columnas `recordatorio_24h_enviado` y `recordatorio_2h_enviado` en `turnos`
 - **/conversaciones:** "Tomar control" funcional — escribe y envía por WhatsApp, guarda en Supabase
@@ -82,20 +88,28 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 - **Teléfono de prueba:** +5491159530792
 - **Modelo Claude:** claude-sonnet-4-6
 - **Credenciales:** `.env.local` (NO en git) + Vercel (16 vars)
-- **gh CLI instalado:** `C:\Users\DIEGO\AppData\Local\gh-cli\bin\gh.exe` (autenticado vía Credential Manager)
+- **gh CLI instalado:** `C:\Users\DIEGO\AppData\Local\gh-cli\bin\gh.exe` — ⚠️ NO autenticado (el token expiró). Git usa SSH ahora, no `gh`
+- **Git push:** SSH key `~/.ssh/id_ed25519_github` + `~/.ssh/config`. `gh auth login` sigue pendiente si se quiere usar el CLI
 
 ### ¿Qué está pendiente?
-- **Probar flujo registro completo:** registrarse como nuevo profesional → onboarding → dashboard (no testeado post auth-real)
+- **⚠️ Verificación post-deploy de los fixes de seguridad de hoy (#41-50):**
+  1. **Webhook Twilio** — mandar 1 mensaje al sandbox. Si da 403, Vercel logs → `[Twilio webhook] Firma inválida` muestra el `publicUrl` reconstruido vs el configurado en Twilio
+  2. **Registro nuevo profesional** — el POST `/api/auth/profesional` ahora exige sesión (debería andar, pero testear)
+  3. **Conectar Google Calendar** desde `/configuracion` — el flujo OAuth ahora deriva de sesión
+  4. **n8n** — confirmar `N8N_WEBHOOK_SECRET` en Vercel (el webhook ahora falla cerrado sin él)
 - **MercadoPago activo:** código listo, solo falta pegar `MERCADOPAGO_ACCESS_TOKEN` en Vercel (cuenta de Diego)
 - **Resend activo:** código listo, solo falta crear cuenta free en resend.com + pegar `RESEND_API_KEY` en Vercel
 - **WhatsApp producción:** salir del sandbox Twilio (requiere WhatsApp Business aprobado por Meta)
 - **Vercel MCP:** pendiente autenticar (`https://mcp.vercel.com`)
 - **Twilio MCP:** requiere reinicio de Claude Code
+- **M2 (riesgo aceptado):** webhook MercadoPago no valida `x-signature` — mitigado por re-fetch a la API de MP
+- **L4 (bajo, sin tocar):** `claude-agent.ts` relaya `String(err)` al modelo — info leak menor
 
 ### El próximo paso concreto es
-> 1. **Activar MercadoPago:** Diego pega `MERCADOPAGO_ACCESS_TOKEN` en Vercel → al crear un turno aparece botón "Cobrar seña"
-> 2. **Activar Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY` → al crear turno el paciente recibe email
-> 3. **Probar registro nuevo profesional** en calendaria.com.ar — registrarse, onboarding, usar el panel
+> 1. **Verificar los 4 puntos post-deploy** de arriba — son los fixes de seguridad de hoy, conviene confirmar que no rompieron nada
+> 2. **Activar MercadoPago:** Diego pega `MERCADOPAGO_ACCESS_TOKEN` en Vercel → al crear un turno aparece botón "Cobrar seña"
+> 3. **Activar Resend:** Diego crea cuenta free en resend.com → pega `RESEND_API_KEY`
+> 4. **Probar registro nuevo profesional** en calendaria.com.ar
 
 ---
 
@@ -120,3 +134,4 @@ Secret: `CRON_SECRET=calendaria_cron_secret_2026` (en Vercel + GitHub secrets)
 | 03/05/2026 loop 6 | Error boundaries, loading skeletons (conversaciones/pacientes/agenda), copiar link en /configuracion, /w/slug mejorado, FAQ + CTAs landing | Pegar credenciales MP+Resend + probar registro |
 | 03/05/2026 loop 7 | /pagos, Aurora mejorada (out-of-hours+nombre prof+crisis), email pacientes, CSV export, dashboard metrics (confirmación+próximo turno), agenda modal turnos del día, RLS write policies migration | Ejecutar migración RLS + activar MP+Resend |
 | 03/05/2026 cierre | RLS write policies ejecutado en Supabase SQL editor (Success ✅) — 40 correcciones registradas, todos los features de Fase 1 completos | Activar MP+Resend + probar registro nuevo |
+| 14/05/2026 | Supabase Data API hardening (template GRANT + reglas CLAUDE.md), secure-kit auditado/mejorado, SSH key para GitHub, auditoría de seguridad completa del codebase: 10 correcciones #41-50 (1 crít, 4 altos, 2 medios, 3 bajos) | Verificar 4 puntos post-deploy + activar MP+Resend + probar registro |
