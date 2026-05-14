@@ -50,6 +50,10 @@
 | 38 | 2026-05-03 | — | Lógica | System prompt Aurora no cargaba nombre real del profesional ni horario — el agente no podía mencionar su nombre ni detectar mensajes fuera de horario | `lib/claude-agent.ts` | ✅ |
 | 39 | 2026-05-03 | — | UX | Modal "+ Paciente" sin campo email — Resend no podía enviar confirmaciones aunque la key estuviera configurada | `pacientes/page.tsx` · `api/data/pacientes/route.ts` | ✅ |
 | 40 | 2026-05-03 | — | UX | Modal "+ Turno" en /agenda no mostraba los turnos existentes del día — profesional podía crear turnos sin ver el contexto del día | `agenda/page.tsx` | ✅ |
+| 41 | 2026-05-14 | — | Seguridad | **CRÍTICO** — PATCH `/api/auth/profesional` sin auth + `...spread` del body: cualquiera podía sobreescribir `slug`/`twilio_*`/`mercado_pago_access_token`/`google_calendar_token` de cualquier profesional. Ahora usa `getProfesionalId()` (session) + whitelist de columnas | `api/auth/profesional/route.ts` | ✅ |
+| 42 | 2026-05-14 | — | Seguridad | POST `/api/auth/profesional` sin auth — confirmaba email de UUID arbitrario (`updateUserById`) e insertaba fila con PK del cliente. Ahora valida que `id === sessionId` | `api/auth/profesional/route.ts` | ✅ |
+| 43 | 2026-05-14 | — | Seguridad | Webhook Twilio no validaba `X-Twilio-Signature` — requests falsos generaban gasto en Claude API, escrituras en DB y WhatsApp salientes. Agregado `validateRequest` (falla cerrado, 403) | `api/webhooks/twilio/route.ts` | ✅ |
+| 44 | 2026-05-14 | — | Seguridad | Webhooks `n8n` y `cron/recordatorios` fail-open: `if (SECRET && ...)` salteaba el chequeo si la env var no estaba seteada. Ahora falla cerrado + comparación `timingSafeEqual` | `api/webhooks/n8n/route.ts` · `api/cron/recordatorios/route.ts` | ✅ |
 
 ---
 
@@ -80,3 +84,7 @@
 - **Estado de conversación en agent-tools:** siempre usar `'archivada'` al cerrar conversación — el schema SQL define `activa | archivada`, no `completada`
 - **Fallback env var en webhook:** usar `?? ''` para variables de entorno opcionales removidas de prod — el caller ya valida `if (!profesionalId)` y devuelve error amigable
 - **GRANT explícito en tablas nuevas:** desde el 30/10/2026 Supabase no expone tablas nuevas de `public` a la Data API sin `GRANT` — al crear una tabla copiar `supabase/migrations/_TEMPLATE_nueva_tabla.sql` (CREATE + GRANT por rol + RLS + políticas). Sin el GRANT, `supabase.from('tabla')` falla con error de permisos aunque la tabla exista. Las 8 tablas actuales conservan sus grants, no están afectadas
+- **Nunca `...spread` del body en un UPDATE:** mass-assignment — el cliente puede setear cualquier columna (`slug`, tokens, credenciales). Siempre whitelist explícita campo por campo, como en `api/data/configuracion/route.ts`
+- **API routes que mutan datos NO son públicas por defecto:** toda route bajo `/api/` es accesible sin auth salvo que se valide sesión. Las que tocan `profesionales`/datos sensibles deben llamar `getProfesionalId()` y usar ese id, nunca el `id` del body
+- **Webhooks fail-closed:** validar firma/secret SIEMPRE. El patrón `if (SECRET && header !== SECRET)` deja el webhook abierto si la env var falta — usar `if (!SECRET || !safeEqual(...))`. Comparar secrets con `crypto.timingSafeEqual`, no `!==`
+- **Twilio webhook:** validar `X-Twilio-Signature` con `validateRequest` de la lib `twilio`. La URL a verificar se reconstruye de `x-forwarded-proto` + `host` + pathname (detrás de Vercel `request.url` puede traer host interno)

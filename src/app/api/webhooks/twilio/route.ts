@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { validateRequest } from 'twilio';
 import { sendMessage, ConversationContext, Message } from '@/lib/claude-agent';
 
 const SHARED_NUMBER = (process.env.TWILIO_PHONE_NUMBER ?? 'whatsapp:+14155238886')
@@ -81,6 +82,25 @@ async function resolverProfesionalId(
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
+
+  // ── Validar firma de Twilio (X-Twilio-Signature) ──────────────────────────
+  // Sin esto cualquiera puede POSTear mensajes falsos: gasto en Claude API,
+  // escrituras en DB y WhatsApp salientes. Falla cerrado.
+  const authToken = process.env.TWILIO_AUTH_TOKEN ?? '';
+  const signature = request.headers.get('x-twilio-signature') ?? '';
+  // Reconstruir la URL pública que Twilio firmó (detrás del proxy de Vercel
+  // request.url puede traer host interno).
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https';
+  const host  = request.headers.get('host') ?? '';
+  const publicUrl = `${proto}://${host}${new URL(request.url).pathname}`;
+  const params: Record<string, string> = {};
+  formData.forEach((value, key) => { params[key] = String(value); });
+
+  if (!authToken || !validateRequest(authToken, signature, publicUrl, params)) {
+    console.error('[Twilio webhook] Firma inválida', { publicUrl, hasSignature: !!signature, hasToken: !!authToken });
+    return new NextResponse('Forbidden', { status: 403, headers: { 'Content-Type': 'text/plain' } });
+  }
+
   const rawBody = (formData.get('Body') as string)?.trim();
   const from    = formData.get('From') as string;   // "whatsapp:+5491123456789"
   const to      = formData.get('To')   as string;   // "whatsapp:+14155238886" o número individual

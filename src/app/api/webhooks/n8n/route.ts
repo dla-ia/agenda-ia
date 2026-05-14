@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET ?? '';
+
+// Comparación de longitud + contenido en tiempo constante (evita timing attack).
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 function formatArgentineDate(iso: string): string {
   const d = new Date(iso);
@@ -17,9 +26,10 @@ function formatArgentineDate(iso: string): string {
 }
 
 export async function POST(req: Request) {
-  // Validate secret header
+  // Validate secret header — falla cerrado: si el secret no está configurado,
+  // se rechaza todo (antes el `WEBHOOK_SECRET &&` dejaba el webhook abierto).
   const authHeader = req.headers.get('x-webhook-secret') ?? '';
-  if (WEBHOOK_SECRET && authHeader !== WEBHOOK_SECRET) {
+  if (!WEBHOOK_SECRET || !safeEqual(authHeader, WEBHOOK_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

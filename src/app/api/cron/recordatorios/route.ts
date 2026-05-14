@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const CRON_SECRET = process.env.CRON_SECRET ?? '';
+
+// Comparación en tiempo constante (evita timing attack).
+function safeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 function formatArgentineDate(iso: string): string {
   const d = new Date(iso);
@@ -50,11 +59,12 @@ async function sendWhatsApp(telefono: string, mensaje: string) {
 }
 
 export async function GET(req: Request) {
-  // Validate secret — GitHub Actions sends it as query param
+  // Validate secret — GitHub Actions sends it as query param.
+  // Falla cerrado: si CRON_SECRET no está configurado, se rechaza todo.
   const { searchParams } = new URL(req.url);
   const secret = req.headers.get('x-cron-secret') ?? searchParams.get('secret') ?? '';
 
-  if (CRON_SECRET && secret !== CRON_SECRET) {
+  if (!CRON_SECRET || !safeEqual(secret, CRON_SECRET)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
