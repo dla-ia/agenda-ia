@@ -56,6 +56,7 @@
 | 44 | 2026-05-14 | — | Seguridad | Webhooks `n8n` y `cron/recordatorios` fail-open: `if (SECRET && ...)` salteaba el chequeo si la env var no estaba seteada. Ahora falla cerrado + comparación `timingSafeEqual` | `api/webhooks/n8n/route.ts` · `api/cron/recordatorios/route.ts` | ✅ |
 | 45 | 2026-05-14 | — | Seguridad | Email de confirmación (Resend) interpolaba `paciente.nombre` y `prof.nombre` crudos en el HTML — HTML injection. Agregado helper `escapeHtml` | `api/data/agenda/route.ts` | ✅ |
 | 46 | 2026-05-14 | — | Lógica | POST `/api/data/agenda` no validaba `fecha_hora` — una fecha inválida daba `NaN` y salteaba el chequeo de solapamiento (recién fallaba en el INSERT). Ahora valida y devuelve 400 | `api/data/agenda/route.ts` | ✅ |
+| 47 | 2026-05-14 | — | Seguridad | **ALTO** — OAuth Google tomaba `profesionalId` de un query param y lo usaba como `state` → un atacante podía escribir SUS tokens de Google sobre la fila de otro profesional (hijack de calendario, fuga de datos de pacientes). Ahora `profesionalId` se deriva de la sesión en initiation y el callback verifica `state === sessionProfesionalId` | `api/auth/google/route.ts` · `api/auth/google/callback/route.ts` | ✅ |
 
 ---
 
@@ -90,3 +91,4 @@
 - **API routes que mutan datos NO son públicas por defecto:** toda route bajo `/api/` es accesible sin auth salvo que se valide sesión. Las que tocan `profesionales`/datos sensibles deben llamar `getProfesionalId()` y usar ese id, nunca el `id` del body
 - **Webhooks fail-closed:** validar firma/secret SIEMPRE. El patrón `if (SECRET && header !== SECRET)` deja el webhook abierto si la env var falta — usar `if (!SECRET || !safeEqual(...))`. Comparar secrets con `crypto.timingSafeEqual`, no `!==`
 - **Twilio webhook:** validar `X-Twilio-Signature` con `validateRequest` de la lib `twilio`. La URL a verificar se reconstruye de `x-forwarded-proto` + `host` + pathname (detrás de Vercel `request.url` puede traer host interno)
+- **OAuth `state` nunca de input del usuario:** el `state` debe derivar de la sesión, no de un query param. Verificar en el callback que `state === sessionProfesionalId` — sino, cualquiera puede escribir tokens OAuth sobre la fila de otro tenant
